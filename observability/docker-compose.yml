@@ -1,5 +1,6 @@
 services:
   otel-collector:
+    container_name: otel-collector
     image: otel/opentelemetry-collector-contrib:0.104.0
     command: [ "--config=/etc/otel-collector.yaml" ]
     volumes:
@@ -10,3 +11,46 @@ services:
       - "8888:8888"     # collector's own metrics
       - "13133:13133"   # health check
       - "1777:1777"     # pprof
+    restart: unless-stopped
+
+  tempo:
+    container_name: tempo
+    image: grafana/tempo:2.10.0
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo/config.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"
+#      - "4317:4317"
+#      - "4318:4318"
+    restart: unless-stopped
+
+  mimir:
+    container_name: mimir
+    image: grafana/mimir:latest
+    command:
+      - "-config.file=/etc/mimir/config.yaml"
+    volumes:
+      - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - mimir-data:/data
+    ports:
+      - "9009:9009"
+    restart: unless-stopped
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:13.1.1
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+
+volumes:
+  tempo-data:
+  grafana-data:
+  mimir-data:
