@@ -1,29 +1,46 @@
 services:
   otel-collector:
     container_name: otel-collector
-    image: otel/opentelemetry-collector-contrib:0.104.0
-    command: [ "--config=/etc/otel-collector.yaml" ]
+    image: otel/opentelemetry-collector-contrib:0.158.0
+    user: "0:0"
+    command: ["--config=/etc/otel-collector.yaml"]
     volumes:
       - ./otel-collector/config.yaml:/etc/otel-collector.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     ports:
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
-      - "8888:8888"     # collector's own metrics
-      - "13133:13133"   # health check
-      - "1777:1777"     # pprof
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+      - "13133:13133"
+      - "1777:1777"
+    networks:
+      - observability
+    restart: unless-stopped
+
+  loki:
+    container_name: loki
+    image: grafana/loki:3.7.5
+    command: -config.file=/etc/loki/config.yaml
+    volumes:
+      - ./loki/config.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - observability
     restart: unless-stopped
 
   tempo:
     container_name: tempo
     image: grafana/tempo:3.0.3
-    command: [ "-config.file=/etc/tempo.yaml" ]
+    command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./tempo/config.yaml:/etc/tempo.yaml:ro
       - tempo-data:/var/tempo
     ports:
       - "3200:3200"
-#      - "4317:4317"
-#      - "4318:4318"
+    networks:
+      - observability
     restart: unless-stopped
 
   mimir:
@@ -36,6 +53,8 @@ services:
       - mimir-data:/data
     ports:
       - "9009:9009"
+    networks:
+      - observability
     restart: unless-stopped
 
   grafana:
@@ -49,8 +68,16 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - observability
+    restart: unless-stopped
+
+networks:
+  observability:
+    external: true
 
 volumes:
+  loki-data:
   tempo-data:
-  grafana-data:
   mimir-data:
+  grafana-data:

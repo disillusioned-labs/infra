@@ -5,6 +5,19 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+  filelog/docker:
+    include:
+      - /var/lib/docker/containers/*/*-json.log
+    start_at: end
+    operators:
+      - type: json_parser
+        parse_from: body
+      - type: json_parser
+        parse_from: attributes.log
+        parse_to: body
+      - type: move
+        from: body.service
+        to: resource["service.name"]
 
 processors:
   memory_limiter:
@@ -17,6 +30,8 @@ processors:
 
 # TODO Exporters: add retry on failure and sending queue
 exporters:
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
   otlp/tempo:
     endpoint: tempo:4317
     tls:
@@ -31,16 +46,34 @@ extensions:
     endpoint: 0.0.0.0:1777
 
 service:
-  extensions: [ health_check, pprof ]
+  extensions:
+    - health_check
+    - pprof
+
   pipelines:
+    logs:
+      receivers:
+        - filelog/docker
+      processors:
+        - memory_limiter
+        - batch
+      exporters:
+        - otlphttp/loki
+
     traces:
-      receivers: [ otlp ]
-      processors: [ memory_limiter, batch ]
-      exporters: [ otlp/tempo ]
+      receivers:
+        - otlp
+      processors:
+        - memory_limiter
+        - batch
+      exporters:
+        - otlp/tempo
+
     metrics:
-      receivers: [ otlp ]
-      processors: [ memory_limiter, batch ]
-      exporters: [ prometheusremotewrite/mimir ]
-  telemetry:
-    metrics:
-      address: 0.0.0.0:8888
+      receivers:
+        - otlp
+      processors:
+        - memory_limiter
+        - batch
+      exporters:
+        - prometheusremotewrite/mimir
