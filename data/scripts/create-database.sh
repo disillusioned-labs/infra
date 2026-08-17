@@ -24,7 +24,7 @@ echo "Provisioning PostgreSQL..."
 echo "  database : $DB_NAME"
 echo "  user     : $DB_USER"
 
-docker exec -i "$CONTAINER_NAME" \
+podman exec -i "$CONTAINER_NAME" \
   psql \
     -U "$POSTGRES_USER" \
     -d "$POSTGRES_DB" \

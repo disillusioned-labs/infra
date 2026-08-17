@@ -20,7 +20,7 @@ echo "Creating Kafka topic..."
 echo "  topic      : $TOPIC_NAME"
 echo "  partitions : $PARTITIONS"
 
-docker exec "$CONTAINER_NAME" \
+podman exec "$CONTAINER_NAME" \
   /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server localhost:9092 \
   --create \
