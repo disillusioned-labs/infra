@@ -6,54 +6,101 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
-  # Docker json-file logs
-  filelog/docker_containers:
-    include:
-      - /var/lib/docker/containers/*/*-json.log
-    start_at: end
-    operators:
-      # Parse Docker JSON envelope:
-      # {"log":"...","stream":"stdout","time":"..."}
-      - type: json_parser
-        parse_from: body
-
-      # Parse application JSON from "log"
-      - type: json_parser
-        parse_from: attributes.log
-        parse_to: body
-
-      # Use application service as service.name
-      - type: move
-        from: body.service
-        to: resource["service.name"]
-        if: 'body.service != nil'
-
-  # Podman k8s-file / CRI logs
-  filelog/podman_containers:
+  file_log/podman:
     include:
       - /var/lib/containers/storage/overlay-containers/*/userdata/ctr.log
+    start_at: beginning
+    include_file_name: true
     include_file_path: true
-    start_at: end
 
     operators:
-      - type: container
-        id: container_parser
+      # Podman ctr.log format:
+      # <timestamp> <stream> <logtag> <log>
+      - id: podman-parser
+        type: regex_parser
+        regex: '^(?P<time>\S+)\s+(?P<stream>stdout|stderr)\s+(?P<logtag>\S+)\s?(?P<log>.*)$'
 
-      - type: json_parser
-        id: application_json
+      # Recombine multiline logs. "F" marks the final partial entry.
+      - id: podman-recombine
+        type: recombine
+        combine_field: attributes.log
+        combine_with: ""
+        is_last_entry: attributes.logtag == "F"
+        source_identifier: attributes["log.file.path"]
+
+      - id: podman-metadata
+        type: regex_parser
+        parse_from: attributes["log.file.path"]
+        regex: '^.*/overlay-containers/(?P<container_id>[a-f0-9]+)/userdata/ctr\.log$'
+
+      # Keep container.id at resource level so it is propagated consistently
+      # with other resource attributes such as service.name.
+      - id: container-id-to-resource
+        type: move
+        from: attributes.container_id
+        to: resource["container.id"]
+
+      - id: stream-to-attribute
+        type: move
+        from: attributes.stream
+        to: attributes["log.iostream"]
+
+      - id: log-to-body
+        type: move
+        from: attributes.log
+        to: body
+
+      # Parse application JSON into attributes so fields such as "service"
+      # can be promoted to resource attributes by subsequent operators.
+      - id: application-json
+        type: json_parser
+        parse_from: body
+        parse_to: attributes
+
+      - id: set-service-name
+        type: move
+        from: attributes.service
+        to: resource["service.name"]
+
+  file_log/docker:
+    include:
+      - /var/lib/docker/containers/*/*-json.log
+    start_at: beginning
+    include_file_name: true
+    include_file_path: true
+
+    operators:
+      - id: docker-parser
+        type: json_parser
         parse_from: body
 
-      - type: move
-        id: service_name
-        from: body.service
+      - id: docker-stream
+        type: move
+        from: attributes.stream
+        to: attributes["log.iostream"]
+
+      - id: docker-log
+        type: move
+        from: attributes.log
+        to: body
+
+      # Parse application JSON into attributes so fields such as "service"
+      # can be promoted to resource attributes by the next operator.
+      - id: docker-application-json
+        type: json_parser
+        parse_from: body
+        parse_to: attributes
+
+      - id: docker-set-service-name
+        type: move
+        from: attributes.service
         to: resource["service.name"]
-        if: 'body.service != nil'
 
 processors:
   memory_limiter:
     check_interval: 1s
-    limit_mib: 256
-    spike_limit_mib: 64
+    limit_mib: 512
+    spike_limit_mib: 128
 
   batch:
     timeout: 5s
@@ -62,14 +109,31 @@ processors:
 exporters:
   otlphttp/loki:
     endpoint: http://loki:3100/otlp
+    retry_on_failure:
+      enabled: true
+    sending_queue:
+      enabled: true
 
   otlp/tempo:
     endpoint: tempo:4317
     tls:
       insecure: true
+    retry_on_failure:
+      enabled: true
+    sending_queue:
+      enabled: true
 
   prometheusremotewrite/mimir:
     endpoint: http://mimir:9009/api/v1/push
+    retry_on_failure:
+      enabled: true
+    remote_write_queue:
+      enabled: true
+
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 1
 
 extensions:
   health_check:
@@ -83,16 +147,22 @@ service:
     - health_check
     - pprof
 
+  telemetry:
+    logs:
+      level: debug
+
   pipelines:
     logs:
       receivers:
-        - filelog/docker_containers
-        - filelog/podman_containers
+        - file_log/podman
+        - file_log/docker
+        - otlp
       processors:
         - memory_limiter
         - batch
       exporters:
         - otlphttp/loki
+        - debug
 
     traces:
       receivers:
