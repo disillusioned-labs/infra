@@ -32,20 +32,19 @@ receivers:
   filelog/podman_containers:
     include:
       - /var/lib/containers/storage/overlay-containers/*/userdata/ctr.log
+    include_file_path: true
     start_at: end
+
     operators:
-      # Parse CRI envelope:
-      # <timestamp> <stream> <tag> <log>
       - type: container
         id: container_parser
 
-      # Parse application JSON
       - type: json_parser
+        id: application_json
         parse_from: body
-        if: 'body matches "^\\{"'
 
-      # Use application service as service.name
       - type: move
+        id: service_name
         from: body.service
         to: resource["service.name"]
         if: 'body.service != nil'
