@@ -1,26 +1,53 @@
 receivers:
+  # ============================================================
+  # OTLP
+  # ============================================================
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
+
       http:
         endpoint: 0.0.0.0:4318
 
+
+  # ============================================================
+  # PODMAN
+  # ============================================================
   file_log/podman:
     include:
       - /var/lib/containers/storage/overlay-containers/*/userdata/ctr.log
+
     start_at: beginning
+
+    # Check file changes frequently.
+    poll_interval: 200ms
+
+    # Handle file truncation.
+    on_truncate: read_new
+
     include_file_name: true
     include_file_path: true
 
     operators:
-      # Podman ctr.log format:
+
+      # ----------------------------------------------------------
+      # Podman ctr.log:
+      #
       # <timestamp> <stream> <logtag> <log>
+      #
+      # Example:
+      # 2026-08-18T17:42:49.355+07:00 stdout F {"service":"identity-api"}
+      # ----------------------------------------------------------
       - id: podman-parser
         type: regex_parser
         regex: '^(?P<time>\S+)\s+(?P<stream>stdout|stderr)\s+(?P<logtag>\S+)\s?(?P<log>.*)$'
 
-      # Recombine multiline logs. "F" marks the final partial entry.
+
+      # ----------------------------------------------------------
+      # Recombine multiline logs.
+      # F = final/full record.
+      # ----------------------------------------------------------
       - id: podman-recombine
         type: recombine
         combine_field: attributes.log
@@ -28,156 +55,264 @@ receivers:
         is_last_entry: attributes.logtag == "F"
         source_identifier: attributes["log.file.path"]
 
+
+      # ----------------------------------------------------------
+      # Extract container ID:
+      #
+      # /overlay-containers/<container-id>/userdata/ctr.log
+      # ----------------------------------------------------------
       - id: podman-metadata
         type: regex_parser
         parse_from: attributes["log.file.path"]
         regex: '^.*/overlay-containers/(?P<container_id>[a-f0-9]+)/userdata/ctr\.log$'
 
-      # Keep container.id at resource level so it is propagated consistently
-      # with other resource attributes such as service.name.
+
+      # ----------------------------------------------------------
+      # container_id -> resource.container.id
+      # ----------------------------------------------------------
       - id: container-id-to-resource
         type: move
         from: attributes.container_id
         to: resource["container.id"]
 
+
+      # ----------------------------------------------------------
+      # stdout/stderr -> log.iostream
+      # ----------------------------------------------------------
       - id: stream-to-attribute
         type: move
         from: attributes.stream
         to: attributes["log.iostream"]
 
+
+      # ----------------------------------------------------------
+      # Application log -> body
+      # ----------------------------------------------------------
       - id: log-to-body
         type: move
         from: attributes.log
         to: body
 
-      # Parse application JSON into attributes so fields such as "service"
-      # can be promoted to resource attributes by subsequent operators.
+
+      # ----------------------------------------------------------
+      # Parse application JSON.
+      #
+      # Example:
+      #
+      # {
+      #   "time": "...",
+      #   "level": "WARN",
+      #   "service": "identity-api",
+      #   ...
+      # }
+      # ----------------------------------------------------------
       - id: application-json
         type: json_parser
         parse_from: body
         parse_to: attributes
 
+
+      # ----------------------------------------------------------
+      # Dynamic service.name
+      #
+      # "service":"identity-api"
+      #       ↓
+      # resource["service.name"] = "identity-api"
+      #
+      # "service":"identity-worker"
+      #       ↓
+      # resource["service.name"] = "identity-worker"
+      # ----------------------------------------------------------
       - id: set-service-name
         type: move
         from: attributes.service
         to: resource["service.name"]
 
+
+  # ============================================================
+  # DOCKER
+  # ============================================================
   file_log/docker:
     include:
       - /var/lib/docker/containers/*/*-json.log
+
     start_at: beginning
+
+    poll_interval: 200ms
+
+    on_truncate: read_new
+
     include_file_name: true
     include_file_path: true
 
     operators:
+
+      # Docker json-file:
+      # {"log":"...","stream":"stdout","time":"..."}
       - id: docker-parser
         type: json_parser
         parse_from: body
 
+
+      # stdout/stderr -> log.iostream
       - id: docker-stream
         type: move
         from: attributes.stream
         to: attributes["log.iostream"]
 
+
+      # Docker log -> body
       - id: docker-log
         type: move
         from: attributes.log
         to: body
 
-      # Parse application JSON into attributes so fields such as "service"
-      # can be promoted to resource attributes by the next operator.
+
+      # Parse application JSON.
       - id: docker-application-json
         type: json_parser
         parse_from: body
         parse_to: attributes
 
+
+      # Dynamic service.name.
       - id: docker-set-service-name
         type: move
         from: attributes.service
         to: resource["service.name"]
 
+
+# ==============================================================
+# PROCESSORS
+# ==============================================================
 processors:
+
   memory_limiter:
     check_interval: 1s
     limit_mib: 512
     spike_limit_mib: 128
 
   batch:
-    timeout: 5s
-    send_batch_size: 1024
+    timeout: 1s
+    send_batch_size: 256
 
+
+# ==============================================================
+# EXPORTERS
+# ==============================================================
 exporters:
+
+  # ============================================================
+  # LOKI
+  # ============================================================
   otlphttp/loki:
     endpoint: http://loki:3100/otlp
+
     retry_on_failure:
       enabled: true
+
     sending_queue:
       enabled: true
 
+
+  # ============================================================
+  # TEMPO
+  # ============================================================
   otlp/tempo:
     endpoint: tempo:4317
+
     tls:
       insecure: true
+
     retry_on_failure:
       enabled: true
+
     sending_queue:
       enabled: true
 
+
+  # ============================================================
+  # MIMIR
+  # ============================================================
   prometheusremotewrite/mimir:
     endpoint: http://mimir:9009/api/v1/push
+
     retry_on_failure:
       enabled: true
+
     remote_write_queue:
       enabled: true
 
-  debug:
-    verbosity: detailed
-    sampling_initial: 5
-    sampling_thereafter: 1
 
+# ==============================================================
+# EXTENSIONS
+# ==============================================================
 extensions:
+
   health_check:
     endpoint: 0.0.0.0:13133
 
   pprof:
     endpoint: 0.0.0.0:1777
 
+
+# ==============================================================
+# SERVICE
+# ==============================================================
 service:
+
   extensions:
     - health_check
     - pprof
 
   telemetry:
     logs:
-      level: debug
+      level: info
 
   pipelines:
+
+    # ==========================================================
+    # LOGS
+    # ==========================================================
     logs:
       receivers:
         - file_log/podman
         - file_log/docker
         - otlp
+
       processors:
         - memory_limiter
         - batch
+
       exporters:
         - otlphttp/loki
-        - debug
 
+
+    # ==========================================================
+    # TRACES
+    # ==========================================================
     traces:
       receivers:
         - otlp
+
       processors:
         - memory_limiter
         - batch
+
       exporters:
         - otlp/tempo
 
+
+    # ==========================================================
+    # METRICS
+    # ==========================================================
     metrics:
       receivers:
         - otlp
+
       processors:
         - memory_limiter
         - batch
+
       exporters:
         - prometheusremotewrite/mimir
