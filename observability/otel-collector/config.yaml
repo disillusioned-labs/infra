@@ -5,41 +5,57 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+
+  # Docker json-file logs
   filelog/docker_containers:
     include:
       - /var/lib/docker/containers/*/*-json.log
     start_at: end
     operators:
+      # Parse Docker JSON envelope:
+      # {"log":"...","stream":"stdout","time":"..."}
       - type: json_parser
         parse_from: body
+
+      # Parse application JSON from "log"
       - type: json_parser
         parse_from: attributes.log
         parse_to: body
+
+      # Use application service as service.name
       - type: move
         from: body.service
         to: resource["service.name"]
-  journald/podman_containers:
-    all: true
+        if: 'body.service != nil'
+
+  # Podman k8s-file / CRI logs
+  filelog/podman_containers:
+    include:
+      - /var/lib/containers/storage/overlay-containers/*/userdata/ctr.log
     start_at: end
     operators:
+      # Parse CRI envelope:
+      # <timestamp> <stream> <tag> <log>
+      - type: container
+        id: container_parser
+
+      # Parse application JSON
       - type: json_parser
-        parse_from: attributes.MESSAGE
-        parse_to: body
-        if: 'attributes["CONTAINER_NAME"] != nil'
+        parse_from: body
+        if: 'body matches "^\\{"'
+
+      # Use application service as service.name
       - type: move
         from: body.service
         to: resource["service.name"]
-        if: 'attributes["CONTAINER_NAME"] != nil'
+        if: 'body.service != nil'
 
 processors:
   memory_limiter:
     check_interval: 1s
     limit_mib: 256
     spike_limit_mib: 64
-  filter/drop_non_container_journald:
-    logs:
-      log_record:
-        - 'attributes["_TRANSPORT"] != nil and attributes["CONTAINER_NAME"] == nil'
+
   batch:
     timeout: 5s
     send_batch_size: 1024
@@ -47,16 +63,19 @@ processors:
 exporters:
   otlphttp/loki:
     endpoint: http://loki:3100/otlp
+
   otlp/tempo:
     endpoint: tempo:4317
     tls:
       insecure: true
+
   prometheusremotewrite/mimir:
     endpoint: http://mimir:9009/api/v1/push
 
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133
+
   pprof:
     endpoint: 0.0.0.0:1777
 
@@ -64,17 +83,18 @@ service:
   extensions:
     - health_check
     - pprof
+
   pipelines:
     logs:
       receivers:
         - filelog/docker_containers
-        - journald/podman_containers
+        - filelog/podman_containers
       processors:
         - memory_limiter
-        - filter/drop_non_container_journald
         - batch
       exporters:
         - otlphttp/loki
+
     traces:
       receivers:
         - otlp
@@ -83,6 +103,7 @@ service:
         - batch
       exporters:
         - otlp/tempo
+
     metrics:
       receivers:
         - otlp
