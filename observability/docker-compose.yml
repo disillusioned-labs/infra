@@ -7,6 +7,9 @@ services:
     volumes:
       - ./otel-collector/config.yaml:/etc/otel-collector.yaml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log/journal:/var/log/journal:ro
+      - /run/log/journal:/run/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
     ports:
       - "4317:4317"
       - "4318:4318"
