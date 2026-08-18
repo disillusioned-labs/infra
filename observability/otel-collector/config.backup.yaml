@@ -5,7 +5,7 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
-  filelog/docker_containers:
+  filelog/docker:
     include:
       - /var/lib/docker/containers/*/*-json.log
     start_at: end
@@ -18,32 +18,17 @@ receivers:
       - type: move
         from: body.service
         to: resource["service.name"]
-  journald/podman_containers:
-    all: true
-    start_at: end
-    operators:
-      - type: json_parser
-        parse_from: attributes.MESSAGE
-        parse_to: body
-        if: 'attributes["CONTAINER_NAME"] != nil'
-      - type: move
-        from: body.service
-        to: resource["service.name"]
-        if: 'attributes["CONTAINER_NAME"] != nil'
 
 processors:
   memory_limiter:
     check_interval: 1s
     limit_mib: 256
     spike_limit_mib: 64
-  filter/drop_non_container_journald:
-    logs:
-      log_record:
-        - 'attributes["_TRANSPORT"] != nil and attributes["CONTAINER_NAME"] == nil'
   batch:
     timeout: 5s
     send_batch_size: 1024
 
+# TODO Exporters: add retry on failure and sending queue
 exporters:
   otlphttp/loki:
     endpoint: http://loki:3100/otlp
@@ -64,17 +49,17 @@ service:
   extensions:
     - health_check
     - pprof
+
   pipelines:
     logs:
       receivers:
-        - filelog/docker_containers
-        - journald/podman_containers
+        - filelog/docker
       processors:
         - memory_limiter
-        - filter/drop_non_container_journald
         - batch
       exporters:
         - otlphttp/loki
+
     traces:
       receivers:
         - otlp
@@ -83,6 +68,7 @@ service:
         - batch
       exporters:
         - otlp/tempo
+
     metrics:
       receivers:
         - otlp
