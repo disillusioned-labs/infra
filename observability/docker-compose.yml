@@ -90,3 +90,4 @@ volumes:
   tempo-data:
   mimir-data:
   grafana-data:
+  otel-file-storage:
