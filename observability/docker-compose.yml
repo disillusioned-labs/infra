@@ -10,6 +10,7 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       # Podman k8s-file logs
       - /var/lib/containers/storage/overlay-containers:/var/lib/containers/storage/overlay-containers:ro
+      - otel-file-storage:/var/lib/otelcol/file_storage
     ports:
       - "4317:4317"
       - "4318:4318"

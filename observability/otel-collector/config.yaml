@@ -13,10 +13,10 @@ receivers:
   # PODMAN
   # ============================================================
   file_log/podman:
+    storage: file_storage/otelcol
     include:
       - /var/lib/containers/storage/overlay-containers/*/userdata/ctr.log
     start_at: beginning
-    # Check file changes frequently.
     poll_interval: 200ms
     # Handle file truncation.
     on_truncate: read_new
@@ -39,12 +39,12 @@ receivers:
       # Recombine multiline logs.
       # F = final/full record.
       # ----------------------------------------------------------
-#      - id: podman-recombine
-#        type: recombine
-#        combine_field: attributes.log
-#        combine_with: ""
-#        is_last_entry: attributes.logtag == "F"
-#        source_identifier: attributes["log.file.path"]
+      #      - id: podman-recombine
+      #        type: recombine
+      #        combine_field: attributes.log
+      #        combine_with: ""
+      #        is_last_entry: attributes.logtag == "F"
+      #        source_identifier: attributes["log.file.path"]
 
       # ----------------------------------------------------------
       # Extract container ID:
@@ -117,6 +117,7 @@ receivers:
   # DOCKER
   # ============================================================
   file_log/docker:
+    storage: file_storage/otelcol
     include:
       - /var/lib/docker/containers/*/*-json.log
     start_at: beginning
@@ -178,8 +179,12 @@ exporters:
     endpoint: http://loki:3100/otlp
     retry_on_failure:
       enabled: true
+      max_elapsed_time: 300s
     sending_queue:
       enabled: true
+      storage: file_storage/otelcol
+      queue_size: 5000
+      num_consumers: 10
 
   # ============================================================
   # TEMPO
@@ -211,6 +216,9 @@ extensions:
     endpoint: 0.0.0.0:13133
   pprof:
     endpoint: 0.0.0.0:1777
+  file_storage/otelcol:
+    directory: /var/lib/otelcol/file_storage
+    timeout: 10s
 
 # ==============================================================
 # SERVICE
@@ -219,9 +227,17 @@ service:
   extensions:
     - health_check
     - pprof
+    - file_storage/otelcol
   telemetry:
     logs:
       level: info
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
   pipelines:
     # ==========================================================
     # LOGS
