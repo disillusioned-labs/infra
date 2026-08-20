@@ -15,28 +15,30 @@ receivers:
   file_log/podman:
     include:
       - /var/lib/containers/storage/overlay-containers/*/userdata/ctr.log
-
-    # Keep existing startup/replay behavior.
     start_at: beginning
-
-    # Keep existing polling latency.
+    # Check file changes frequently.
     poll_interval: 200ms
-
-    # Keep existing copytruncate behavior.
+    # Handle file truncation.
     on_truncate: read_new
-
-    # log.file.path is required by recombine and metadata parser.
     include_file_name: true
     include_file_path: true
-
     operators:
-      # Podman CRI-style:
+      # ----------------------------------------------------------
+      # Podman ctr.log:
+      #
       # <timestamp> <stream> <logtag> <log>
+      #
+      # Example:
+      # 2026-08-18T17:42:49.355+07:00 stdout F {"service":"identity-api"}
+      # ----------------------------------------------------------
       - id: podman-parser
         type: regex_parser
         regex: '^(?P<time>\S+)\s+(?P<stream>stdout|stderr)\s+(?P<logtag>\S+)\s?(?P<log>.*)$'
 
-      # Recombine P/F records.
+      # ----------------------------------------------------------
+      # Recombine multiline logs.
+      # F = final/full record.
+      # ----------------------------------------------------------
       - id: podman-recombine
         type: recombine
         combine_field: attributes.log
@@ -44,37 +46,68 @@ receivers:
         is_last_entry: attributes.logtag == "F"
         source_identifier: attributes["log.file.path"]
 
-      # Extract container ID from path.
+      # ----------------------------------------------------------
+      # Extract container ID:
+      #
+      # /overlay-containers/<container-id>/userdata/ctr.log
+      # ----------------------------------------------------------
       - id: podman-metadata
         type: regex_parser
         parse_from: attributes["log.file.path"]
         regex: '^.*/overlay-containers/(?P<container_id>[a-f0-9]+)/userdata/ctr\.log$'
 
+      # ----------------------------------------------------------
       # container_id -> resource.container.id
+      # ----------------------------------------------------------
       - id: container-id-to-resource
         type: move
         from: attributes.container_id
         to: resource["container.id"]
 
+      # ----------------------------------------------------------
       # stdout/stderr -> log.iostream
+      # ----------------------------------------------------------
       - id: stream-to-attribute
         type: move
         from: attributes.stream
         to: attributes["log.iostream"]
 
+      # ----------------------------------------------------------
       # Application log -> body
+      # ----------------------------------------------------------
       - id: log-to-body
         type: move
         from: attributes.log
         to: body
 
-      # Application JSON -> attributes
+      # ----------------------------------------------------------
+      # Parse application JSON.
+      #
+      # Example:
+      #
+      # {
+      #   "time": "...",
+      #   "level": "WARN",
+      #   "service": "identity-api",
+      #   ...
+      # }
+      # ----------------------------------------------------------
       - id: application-json
         type: json_parser
         parse_from: body
         parse_to: attributes
 
-      # service -> resource.service.name
+      # ----------------------------------------------------------
+      # Dynamic service.name
+      #
+      # "service":"identity-api"
+      #       ↓
+      # resource["service.name"] = "identity-api"
+      #
+      # "service":"identity-worker"
+      #       ↓
+      # resource["service.name"] = "identity-worker"
+      # ----------------------------------------------------------
       - id: set-service-name
         type: move
         from: attributes.service
@@ -86,19 +119,11 @@ receivers:
   file_log/docker:
     include:
       - /var/lib/docker/containers/*/*-json.log
-
-    # Keep existing startup/replay behavior.
     start_at: beginning
-
-    # Keep existing polling latency.
     poll_interval: 200ms
-
-    # Keep existing copytruncate behavior.
     on_truncate: read_new
-
     include_file_name: true
     include_file_path: true
-
     operators:
       # Docker json-file:
       # {"log":"...","stream":"stdout","time":"..."}
@@ -118,34 +143,29 @@ receivers:
         from: attributes.log
         to: body
 
-      # Application JSON -> attributes
+      # Parse application JSON.
       - id: docker-application-json
         type: json_parser
         parse_from: body
         parse_to: attributes
 
-      # service -> resource.service.name
+      # Dynamic service.name.
       - id: docker-set-service-name
         type: move
         from: attributes.service
         to: resource["service.name"]
 
-
 # ==============================================================
 # PROCESSORS
 # ==============================================================
 processors:
-  # Must remain first in every pipeline.
   memory_limiter:
     check_interval: 1s
     limit_mib: 512
     spike_limit_mib: 128
-
-  # Keep existing batching behavior.
   batch:
     timeout: 1s
     send_batch_size: 256
-
 
 # ==============================================================
 # EXPORTERS
@@ -156,10 +176,8 @@ exporters:
   # ============================================================
   otlphttp/loki:
     endpoint: http://loki:3100/otlp
-
     retry_on_failure:
       enabled: true
-
     sending_queue:
       enabled: true
 
@@ -168,13 +186,10 @@ exporters:
   # ============================================================
   otlp/tempo:
     endpoint: tempo:4317
-
     tls:
       insecure: true
-
     retry_on_failure:
       enabled: true
-
     sending_queue:
       enabled: true
 
@@ -183,13 +198,10 @@ exporters:
   # ============================================================
   prometheusremotewrite/mimir:
     endpoint: http://mimir:9009/api/v1/push
-
     retry_on_failure:
       enabled: true
-
     remote_write_queue:
       enabled: true
-
 
 # ==============================================================
 # EXTENSIONS
@@ -197,10 +209,8 @@ exporters:
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133
-
   pprof:
     endpoint: 0.0.0.0:1777
-
 
 # ==============================================================
 # SERVICE
@@ -209,11 +219,9 @@ service:
   extensions:
     - health_check
     - pprof
-
   telemetry:
     logs:
       level: info
-
   pipelines:
     # ==========================================================
     # LOGS
@@ -223,12 +231,9 @@ service:
         - file_log/podman
         - file_log/docker
         - otlp
-
-      # memory_limiter -> batch is intentional.
       processors:
         - memory_limiter
         - batch
-
       exporters:
         - otlphttp/loki
 
@@ -238,11 +243,9 @@ service:
     traces:
       receivers:
         - otlp
-
       processors:
         - memory_limiter
         - batch
-
       exporters:
         - otlp/tempo
 
@@ -252,10 +255,8 @@ service:
     metrics:
       receivers:
         - otlp
-
       processors:
         - memory_limiter
         - batch
-
       exporters:
         - prometheusremotewrite/mimir

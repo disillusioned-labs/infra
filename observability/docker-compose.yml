@@ -73,11 +73,16 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
       - observability
+      - podman-ipv6
     restart: unless-stopped
 
 networks:
   observability:
     name: observability
+
+  podman-ipv6:
+    external: true
+    name: podman-ipv6
 
 volumes:
   loki-data:
