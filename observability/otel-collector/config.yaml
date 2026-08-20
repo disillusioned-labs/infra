@@ -39,12 +39,12 @@ receivers:
       # Recombine multiline logs.
       # F = final/full record.
       # ----------------------------------------------------------
-      - id: podman-recombine
-        type: recombine
-        combine_field: attributes.log
-        combine_with: ""
-        is_last_entry: attributes.logtag == "F"
-        source_identifier: attributes["log.file.path"]
+#      - id: podman-recombine
+#        type: recombine
+#        combine_field: attributes.log
+#        combine_with: ""
+#        is_last_entry: attributes.logtag == "F"
+#        source_identifier: attributes["log.file.path"]
 
       # ----------------------------------------------------------
       # Extract container ID:
