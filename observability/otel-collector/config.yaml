@@ -16,7 +16,7 @@ receivers:
     storage: file_storage/otelcol
     include:
       - /var/lib/containers/storage/overlay-containers/*/userdata/ctr.log
-    start_at: beginning
+    start_at: end
     poll_interval: 200ms
     # Handle file truncation.
     on_truncate: read_new
@@ -120,7 +120,7 @@ receivers:
     storage: file_storage/otelcol
     include:
       - /var/lib/docker/containers/*/*-json.log
-    start_at: beginning
+    start_at: end
     poll_interval: 200ms
     on_truncate: read_new
     include_file_name: true
