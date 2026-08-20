@@ -16,6 +16,8 @@ receivers:
     storage: file_storage/otelcol
     include:
       - /var/lib/containers/storage/overlay-containers/*/userdata/ctr.log
+    exclude:
+      - /var/lib/containers/storage/overlay-containers/${env:HOSTNAME}*/userdata/ctr.log
     start_at: end
     poll_interval: 200ms
     # Handle file truncation.
