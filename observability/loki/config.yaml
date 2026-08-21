@@ -12,14 +12,14 @@ common:
     kvstore:
       store: inmemory
 
-ingester:
-  chunk_idle_period: 30m
-  max_chunk_age: 2h
-  chunk_target_size: 1572864
-  chunk_encoding: snappy
-  wal:
-    enabled: true
-    checkpoint_duration: 5m
+#ingester:
+#  chunk_idle_period: 30m
+#  max_chunk_age: 2h
+#  chunk_target_size: 1572864
+#  chunk_encoding: snappy
+#  wal:
+#    enabled: true
+#    checkpoint_duration: 5m
 
 schema_config:
   configs:
