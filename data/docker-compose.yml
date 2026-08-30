@@ -81,8 +81,8 @@ services:
       -s3.port=8333
     ports:
       - "${SEAWEEDFS_S3_PORT}:8333"
-      - "${SEAWEEDFS_MASTER_PORT}:9333"
-      - "${SEAWEEDFS_FILER_PORT}:8888"
+#      - "${SEAWEEDFS_MASTER_PORT}:9333"
+#      - "${SEAWEEDFS_FILER_PORT}:8888"
       - "${SEAWEEDFS_ADMIN_PORT}:23646"
     volumes:
       - seaweedfs_data:/data
