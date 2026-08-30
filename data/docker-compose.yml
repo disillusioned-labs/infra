@@ -70,23 +70,31 @@ services:
       - data
     restart: unless-stopped
 
-  minio:
-    container_name: data-minio
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+  seaweedfs:
+    container_name: data-seaweedfs
+    image: chrislusf/seaweedfs:4.44
+    command: >
+      mini
+      -dir=/data
+      -ip=seaweedfs
+      -s3
+      -s3.port=8333
     ports:
-      - "${MINIO_API_PORT}:9000"
-      - "${MINIO_CONSOLE_PORT}:9001"
+      - "${SEAWEEDFS_S3_PORT}:8333"
+      - "${SEAWEEDFS_MASTER_PORT}:9333"
+      - "${SEAWEEDFS_FILER_PORT}:8888"
+      - "${SEAWEEDFS_ADMIN_PORT}:23646"
     volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
+      - seaweedfs_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9333/cluster/status || exit 1"
+        ]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
       start_period: 15s
     networks:
       - data
@@ -101,4 +109,4 @@ volumes:
   redisdata:
   pgadmindata:
   redisinsightdata:
-  minio_data:
+  seaweedfs_data:
