@@ -1,0 +1,255 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "row",
+      "title": "Liveness & Runtime",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100
+    },
+    {
+      "type": "stat",
+      "title": "Service hidup (punya go_goroutine_count)",
+      "description": "Service yang tidak push metrics dalam window ini hilang dari daftar - pengganti 'up' pada push-model.",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "count(count by (service_name) (go_goroutine_count))",
+          "instant": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Goroutines per service",
+      "gridPos": { "h": 8, "w": 9, "x": 6, "y": 1 },
+      "id": 2,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "go_goroutine_count",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 10 } },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory used (bytes) per service",
+      "gridPos": { "h": 8, "w": 9, "x": 15, "y": 1 },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "go_memory_used_bytes",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "HTTP RED (http_server_request_duration_seconds)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 101
+    },
+    {
+      "type": "timeseries",
+      "title": "Request rate (req/s per service)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 10 },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count[5m]))",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Error rate 4xx/5xx (req/s per service)",
+      "description": "Series status_code>=400. Ratio penuh dibuat per-route di dashboard detail.",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 10 },
+      "id": 5,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count{http_response_status_code=~\"4..|5..\"}[5m]))",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p50/p95/p99 (per service)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 10 },
+      "id": 6,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "histogram_quantile(0.50, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p50 {{service_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95 {{service_name}}",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "histogram_quantile(0.99, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p99 {{service_name}}",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Request rate per route (semua service)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 18 },
+      "id": 7,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum by (service_name, http_route) (rate(http_server_request_duration_seconds_count[5m]))",
+          "legendFormat": "{{service_name}} {{http_route}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "type": "row",
+      "title": "Postgres pool (pgx)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "id": 102
+    },
+    {
+      "type": "timeseries",
+      "title": "Connections: total / idle / acquired / max",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "id": 8,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_total_connections", "legendFormat": "total {{service_name}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_idle_connections", "legendFormat": "idle {{service_name}}", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_acquired_connections", "legendFormat": "acquired {{service_name}}", "refId": "C" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_max_connections", "legendFormat": "max {{service_name}}", "refId": "D" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Acquire wait & empty-acquire (saturasi pool)",
+      "description": "empty_acquire naik = caller menunggu koneksi kosong; tanda pool terlalu kecil.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+      "id": 9,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_empty_acquire_wait_time_nanoseconds_total[5m])", "legendFormat": "wait-time {{service_name}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_empty_acquire_total[5m])", "legendFormat": "empty-acquire {{service_name}}", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_new_connections_total[5m])", "legendFormat": "new-conn {{service_name}}", "refId": "C" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Redis pool (go-redis)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
+      "id": 103
+    },
+    {
+      "type": "timeseries",
+      "title": "Redis connections: usage / max / idle",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "id": 10,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "db_client_connections_usage", "legendFormat": "usage {{service_name}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "db_client_connections_max", "legendFormat": "max {{service_name}}", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "db_client_connections_idle_max", "legendFormat": "idle-max {{service_name}}", "refId": "C" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Redis waits / timeouts / operation errors",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+      "id": 11,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(db_client_connections_waits[5m])", "legendFormat": "waits {{service_name}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(db_client_connections_timeouts[5m])", "legendFormat": "timeouts {{service_name}}", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(db_client_operation_errors_total[5m])", "legendFormat": "op-errors {{service_name}}", "refId": "C" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Kafka & Outbox",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 44 },
+      "id": 104
+    },
+    {
+      "type": "timeseries",
+      "title": "Kafka produce/fetch records (kotel)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 45 },
+      "id": 12,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(messaging_kafka_produce_records_count_total[5m])", "legendFormat": "produce {{service_name}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(messaging_kafka_fetch_records_count_total[5m])", "legendFormat": "fetch {{service_name}}", "refId": "B" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Outbox worker: published vs failed",
+      "description": "Dipancarkan worker outbox. failed > 0 konsisten = Kafka/collector bermasalah.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 45 },
+      "id": 13,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(outbox_events_published_total[5m])", "legendFormat": "published {{service_name}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(outbox_events_publish_failed_total[5m])", "legendFormat": "failed {{service_name}}", "refId": "B" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Kafka consumer records (processed/failed/retried/dlq)",
+      "description": "Dipancarkan consumer audit & notification. failed/dlq naik = pesan bermasalah.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 53 },
+      "id": 14,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(kafka_consumer_records_processed_total[5m])", "legendFormat": "processed {{service_name}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(kafka_consumer_records_failed_total[5m])", "legendFormat": "failed {{service_name}}", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(kafka_consumer_records_retried_total[5m])", "legendFormat": "retried {{service_name}}", "refId": "C" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(kafka_consumer_records_dlq_total[5m])", "legendFormat": "dlq {{service_name}}", "refId": "D" }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["expense", "platform", "overview"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Expense Platform - Services Overview",
+  "uid": "exp-overview",
+  "version": 1
+}

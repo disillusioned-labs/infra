@@ -24,6 +24,9 @@ blocks_storage:
   tsdb:
     dir: /data/tsdb
 
+limits:
+  compactor_blocks_retention_period: 3d
+
 compactor:
   data_dir: /data/compactor
 

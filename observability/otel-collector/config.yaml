@@ -201,6 +201,8 @@ exporters:
   # ============================================================
   prometheusremotewrite/mimir:
     endpoint: http://mimir:9009/api/v1/push
+    resource_to_telemetry_conversion:
+      enabled: true
     retry_on_failure:
       enabled: true
     remote_write_queue:
@@ -213,7 +215,8 @@ extensions:
   health_check:
     endpoint: 0.0.0.0:13133
   pprof:
-    endpoint: 0.0.0.0:1777
+    # Loopback only - a live pprof endpoint is remote code introspection.
+    endpoint: 127.0.0.1:1777
   file_storage/otelcol:
     directory: /var/lib/otelcol/file_storage
 

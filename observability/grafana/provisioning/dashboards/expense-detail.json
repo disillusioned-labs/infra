@@ -1,0 +1,181 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "row",
+      "title": "HTTP RED - service terpilih",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100
+    },
+    {
+      "type": "timeseries",
+      "title": "Request rate per route & status",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum by (http_route, http_response_status_code) (rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[5m]))",
+          "legendFormat": "{{http_route}} {{http_response_status_code}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Error ratio per route (status >= 400 / semua)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "id": 2,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum by (http_route) (rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"4..|5..\"}[5m])) / sum by (http_route) (rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[5m]))",
+          "legendFormat": "{{http_route}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1 }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p50/p95/p99",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "id": 3,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[5m])))", "legendFormat": "p50", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[5m])))", "legendFormat": "p95", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[5m])))", "legendFormat": "p99", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Request / response body size (p95)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+      "id": 4,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_body_size_bytes_bucket{service_name=\"$service\"}[5m])))", "legendFormat": "req p95", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_response_body_size_bytes_bucket{service_name=\"$service\"}[5m])))", "legendFormat": "resp p95", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "type": "row",
+      "title": "Postgres pool (pgx)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "id": 101
+    },
+    {
+      "type": "timeseries",
+      "title": "Connections: total / idle / acquired / constructing / max",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "id": 5,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_total_connections{service_name=\"$service\"}", "legendFormat": "total", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_idle_connections{service_name=\"$service\"}", "legendFormat": "idle", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_acquired_connections{service_name=\"$service\"}", "legendFormat": "acquired", "refId": "C" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_constructing_connections{service_name=\"$service\"}", "legendFormat": "constructing", "refId": "D" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_max_connections{service_name=\"$service\"}", "legendFormat": "max", "refId": "E" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Acquire duration (p50/p95) & destroys",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "id": 6,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_acquire_duration_nanoseconds_total{service_name=\"$service\"}[5m])", "legendFormat": "acquire-wait", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_max_lifetime_destroys_total{service_name=\"$service\"}[5m])", "legendFormat": "lifetime-destroys", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_max_idle_destroys_total{service_name=\"$service\"}[5m])", "legendFormat": "idle-destroys", "refId": "C" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_canceled_acquires_total{service_name=\"$service\"}[5m])", "legendFormat": "canceled", "refId": "D" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Object storage (platform/s3 via otelaws) - aktif saat storage.engine=s3",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "id": 102
+    },
+    {
+      "type": "timeseries",
+      "title": "S3 RPC latency p50/p95 (Put/Get/Head/Delete)",
+      "description": "Series rpc_client_duration_milliseconds (otelaws). Kosong saat engine=local - panel aktif begitu STORAGE_ENGINE=s3.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "id": 7,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.50, sum by (le, rpc_method) (rate(rpc_client_duration_milliseconds_bucket{service_name=\"$service\"}[5m])))", "legendFormat": "p50 {{rpc_method}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le, rpc_method) (rate(rpc_client_duration_milliseconds_bucket{service_name=\"$service\"}[5m])))", "legendFormat": "p95 {{rpc_method}}", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "S3 RPC calls & errors per method",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+      "id": 8,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(rpc_client_requests_total{service_name=\"$service\"}[5m])", "legendFormat": "{{rpc_method}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(rpc_client_errors_total{service_name=\"$service\"}[5m])", "legendFormat": "errors {{rpc_method}}", "refId": "B" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Kafka & Outbox",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
+      "id": 103
+    },
+    {
+      "type": "timeseries",
+      "title": "Kafka produce/fetch bytes",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "id": 9,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(messaging_kafka_produce_bytes_count_by_total{service_name=\"$service\"}[5m])", "legendFormat": "produce", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(messaging_kafka_fetch_bytes_count_by_total{service_name=\"$service\"}[5m])", "legendFormat": "fetch", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Outbox: published / failed",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+      "id": 10,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(outbox_events_published_total{service_name=\"$service\"}[5m])", "legendFormat": "published", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(outbox_events_publish_failed_total{service_name=\"$service\"}[5m])", "legendFormat": "failed", "refId": "B" }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["expense", "detail"],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "query": "label_values({service_name=~\".+\"}, service_name)",
+        "current": { "selected": true, "text": "expense", "value": "expense" },
+        "includeAll": false,
+        "multi": false,
+        "refresh": 2,
+        "sort": 1
+      }
+    ]
+  },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Expense Platform - Service Detail",
+  "uid": "exp-detail",
+  "version": 1
+}
