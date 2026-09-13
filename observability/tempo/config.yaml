@@ -18,7 +18,14 @@ storage:
     local:
       path: /var/tempo/traces
 
-# Retention: keep traces for 3 days only (matches Loki 72h / Mimir 3d).
-compactor:
-  compaction_window: 1h
-  block_retention: 72h
+backend_scheduler:
+  provider:
+    compaction:
+      compaction:
+        compaction_window: 1h
+        block_retention: 72h
+
+backend_worker:
+  compaction:
+    compaction_window: 1h
+    block_retention: 72h

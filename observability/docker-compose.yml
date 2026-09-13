@@ -15,11 +15,11 @@ services:
     ports:
       # Loopback-only: OTLP/health/pprof/metrics must not be reachable from the LAN -
       # the receivers accept unauthenticated pushes from anyone who can reach the port.
-      - "127.0.0.1:4317:4317"
-      - "127.0.0.1:4318:4318"
-      - "127.0.0.1:8888:8888"
-      - "127.0.0.1:13133:13133"
-      - "127.0.0.1:1777:1777"
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+      - "13133:13133"
+      - "1777:1777"
     networks:
       - observability
     restart: unless-stopped
@@ -32,7 +32,7 @@ services:
       - ./loki/config.yaml:/etc/loki/config.yaml:ro
       - loki-data:/loki
     ports:
-      - "127.0.0.1:3100:3100"
+      - "3100:3100"
     networks:
       - observability
     restart: unless-stopped
@@ -45,7 +45,7 @@ services:
       - ./tempo/config.yaml:/etc/tempo.yaml:ro
       - tempo-data:/var/tempo
     ports:
-      - "127.0.0.1:3200:3200"
+      - "3200:3200"
     networks:
       - observability
     restart: unless-stopped
@@ -59,7 +59,7 @@ services:
       - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
       - mimir-data:/data
     ports:
-      - "127.0.0.1:9009:9009"
+      - "9009:9009"
     networks:
       - observability
     restart: unless-stopped
@@ -71,7 +71,7 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
     ports:
-      - "127.0.0.1:3001:3000"
+      - "3001:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -79,6 +79,12 @@ services:
       - observability
       - podman-ipv6
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 networks:
   observability:
