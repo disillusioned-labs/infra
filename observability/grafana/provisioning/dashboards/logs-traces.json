@@ -1,19 +1,18 @@
 {
-  "annotations": { "list": [] },
-  "description": "Logs (Loki) dan traces (Tempo). Keduanya ber-retensi 3 hari sesuai kebijakan stack. Klik TraceID pada baris log untuk melompat ke trace di Tempo (derived field di datasource Loki).",
+  "annotations": {
+    "list": []
+  },
+  "description": "Access log + tracing lintas service (retensi 3 hari). Korelasi: log JSON membawa trace_id yang menaut ke Tempo.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [
     {
-      "asDropdown": true,
-      "includeVars": false,
-      "keepTime": true,
-      "targetBlank": false,
-      "title": "Dashboards",
-      "type": "dashboards",
-      "tags": ["expense"]
+      "type": "link",
+      "title": "Services Overview",
+      "icon": "external link",
+      "url": "/d/services-overview"
     }
   ],
   "liveNow": false,
@@ -21,19 +20,35 @@
     {
       "type": "row",
       "title": "Logs (Loki) - retensi 3 hari",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 100
     },
     {
       "type": "timeseries",
       "title": "Log volume per level (logs/s)",
       "description": "detected_level ditentukan otomatis oleh Loki 3.x. Lonjakan level=error tanpa trafik naik = bug, bukan beban.",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
       "id": 1,
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "sum by (detected_level) (rate({service_name=~\"$service\"}[5m]))",
           "legendFormat": "{{detected_level}}",
           "queryType": "range",
@@ -52,16 +67,49 @@
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "error" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "warn" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+            "matcher": {
+              "id": "byName",
+              "options": "warn"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "info" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+            "matcher": {
+              "id": "byName",
+              "options": "info"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       }
@@ -70,12 +118,23 @@
       "type": "timeseries",
       "title": "Error logs rate (logs/s per service)",
       "description": "detected_level=error saja. Seri kosong berarti tidak ada log error dalam window - bukan data hilang.",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
       "id": 2,
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "sum by (service_name) (rate({service_name=~\"$service\"} | detected_level=\"error\" [5m]))",
           "legendFormat": "{{service_name}}",
           "queryType": "range",
@@ -85,7 +144,12 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ops",
-          "custom": { "lineWidth": 1, "fillOpacity": 10, "showPoints": "never", "spanNulls": true }
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
         },
         "overrides": []
       }
@@ -94,12 +158,23 @@
       "type": "logs",
       "title": "Recent logs (terbaru dulu)",
       "description": "Baris dengan trace_id punya link 'View Trace' ke Tempo (derived field TraceID di datasource Loki).",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 9 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
       "id": 3,
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "{service_name=~\"$service\"}",
           "queryType": "range",
           "refId": "A"
@@ -119,19 +194,35 @@
     {
       "type": "row",
       "title": "Traces (Tempo) - retensi 3 hari",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
       "id": 101
     },
     {
       "type": "timeseries",
       "title": "Span rate (spans/s per service)",
       "description": "Metrics-over-traces (TraceQL stats). Satu query per service terpilih.",
-      "datasource": { "type": "tempo", "uid": "tempo" },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 24
+      },
       "id": 4,
       "targets": [
         {
-          "datasource": { "type": "tempo", "uid": "tempo" },
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
           "query": "{resource.service.name=~\"$service\"}",
           "queryType": "traceql_stats",
           "refId": "A"
@@ -140,7 +231,12 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ops",
-          "custom": { "lineWidth": 1, "fillOpacity": 10, "showPoints": "never", "spanNulls": true }
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
         },
         "overrides": []
       }
@@ -149,12 +245,23 @@
       "type": "timeseries",
       "title": "Error spans (spans/s per service)",
       "description": "Hanya span dengan status=error. Naik bersamaan dengan panel error logs di atas = bug di service yang sama.",
-      "datasource": { "type": "tempo", "uid": "tempo" },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 24
+      },
       "id": 5,
       "targets": [
         {
-          "datasource": { "type": "tempo", "uid": "tempo" },
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
           "query": "{resource.service.name=~\"$service\" && status=error}",
           "queryType": "traceql_stats",
           "refId": "A"
@@ -163,8 +270,16 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ops",
-          "custom": { "lineWidth": 1, "fillOpacity": 10, "showPoints": "never", "spanNulls": true },
-          "color": { "fixedColor": "red", "mode": "fixed" }
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          }
         },
         "overrides": []
       }
@@ -173,12 +288,23 @@
       "type": "timeseries",
       "title": "Trace duration p50/p95/p99",
       "description": "quantile_over_time atas durasi trace utuh (bukan durasi span per-hop).",
-      "datasource": { "type": "tempo", "uid": "tempo" },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 24
+      },
       "id": 6,
       "targets": [
         {
-          "datasource": { "type": "tempo", "uid": "tempo" },
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
           "query": "{resource.service.name=~\"$service\"} | quantile_over_time(duration, 0.5, 0.95, 0.99)",
           "queryType": "traceql",
           "refId": "A"
@@ -187,7 +313,12 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "custom": { "lineWidth": 1, "fillOpacity": 10, "showPoints": "never", "spanNulls": true }
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
         },
         "overrides": []
       }
@@ -195,33 +326,57 @@
     {
       "type": "table",
       "title": "Recent traces (klik untuk trace waterfall)",
-      "datasource": { "type": "tempo", "uid": "tempo" },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 32 },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
       "id": 7,
       "targets": [
         {
-          "datasource": { "type": "tempo", "uid": "tempo" },
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
           "query": "{resource.service.name=~\"$service\"}",
           "queryType": "traceql",
           "limit": 20,
           "refId": "A"
         }
       ],
-      "options": { "showHeader": true }
+      "options": {
+        "showHeader": true
+      }
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["expense", "logs", "traces"],
+  "tags": [
+    "expense",
+    "logs",
+    "traces"
+  ],
   "templating": {
     "list": [
       {
         "name": "service",
         "label": "Service",
         "type": "query",
-        "datasource": { "type": "loki", "uid": "loki" },
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
         "query": "label_values({service_name=~\".+\"}, service_name)",
-        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
         "includeAll": true,
         "allValue": ".*",
         "multi": true,
@@ -230,10 +385,13 @@
       }
     ]
   },
-  "time": { "from": "now-3h", "to": "now" },
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Expense Platform - Logs & Traces",
   "uid": "exp-logs",
-  "version": 1
+  "version": 2
 }

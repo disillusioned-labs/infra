@@ -1,287 +1,785 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [],
+  "links": [
+    {
+      "type": "link",
+      "title": "Services Overview",
+      "icon": "external link",
+      "url": "/d/services-overview"
+    },
+    {
+      "type": "link",
+      "title": "Logs & Traces",
+      "icon": "external link",
+      "url": "/d/exp-logs"
+    }
+  ],
   "liveNow": false,
   "panels": [
     {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 999,
+      "options": {
+        "mode": "markdown",
+        "content": "**OCR Detail** - engine `document.v1` (Python): kualitas ekstraksi, latency, antrean, kuota. Platform view: [Services Overview](/d/services-overview).\n\n- Semua seri adalah instrumen `ocr_engine.obs.metrics` - nama panel = nama seri Prometheus.\n- Kriteria pilot go/no-go ada sebagai panel stat (failed %, needs_review %) - threshold merah = batas lulus.\n- Label dibatasi set tetap (method/status/error code/provider); tidak ada document id atau teks OCR di sini."
+      }
+    },
+    {
       "type": "row",
       "title": "Proses & provider",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
       "id": 100
     },
     {
       "type": "timeseries",
       "title": "Liveness per proses (api/worker/outbox)",
       "description": "Push telemetry tidak punya `up`: seri ini konstan 1 selama proses hidup. Celah = proses mati; alert `absent()` per ocr_process.",
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 1 },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
       "id": 10,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum by (ocr_process) (ocr_process_running{service_name=\"ocr\"})",
           "legendFormat": "{{ocr_process}}",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "short", "min": 0 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Error provider: transient (retry SAQ) vs permanent",
       "description": "Transient = umumnya quota/rate limit Baidu (429) - job di-retry SAQ; permanent = config/token rusak - alarm.",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 1 },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
       "id": 11,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(ocr_pipeline_transient_errors_total{service_name=\"ocr\"}[5m])", "legendFormat": "transient (job retry)", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "sum by (outcome) (rate(ocr_provider_errors_total{service_name=\"ocr\"}[5m]))", "legendFormat": "{{outcome}}", "refId": "B" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(ocr_pipeline_transient_errors_total{service_name=\"ocr\"}[5m])",
+          "legendFormat": "transient (job retry)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "sum by (outcome) (rate(ocr_provider_errors_total{service_name=\"ocr\"}[5m]))",
+          "legendFormat": "{{outcome}}",
+          "refId": "B"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "row",
       "title": "gRPC RED (Kontrak B handlers)",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
       "id": 101
     },
     {
       "type": "timeseries",
       "title": "Request rate per method & status",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
       "id": 1,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum by (rpc_method, rpc_grpc_status) (rate(ocr_rpc_requests_total{service_name=\"ocr\"}[5m]))",
           "legendFormat": "{{rpc_method}} {{rpc_grpc_status}}",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Handler latency p50/p95/p99",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
       "id": 2,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.50, sum by (le) (rate(ocr_rpc_duration_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p50", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ocr_rpc_duration_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p95", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.99, sum by (le) (rate(ocr_rpc_duration_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p99", "refId": "C" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(ocr_rpc_duration_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(ocr_rpc_duration_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(ocr_rpc_duration_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "row",
       "title": "Pipeline dokumen",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
       "id": 102
     },
     {
       "type": "timeseries",
       "title": "Dokumen selesai per status",
       "description": "Rate dokumen mencapai status terminal. needs_review tinggi = threshold/akurasi; failed = error pembacaan atau file.",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
       "id": 3,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum by (status) (rate(ocr_documents_processed_total{service_name=\"ocr\"}[5m]))",
           "legendFormat": "{{status}}",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Alasan kegagalan (per error code)",
       "description": "UNSUPPORTED_FILE_TYPE/RESOURCE_LIMIT/STORAGE_OBJECT_MISSING = permintaan ulang file; INTERNAL = alarm engine.",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
       "id": 4,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum by (error_code) (rate(ocr_documents_failed_total{service_name=\"ocr\"}[5m]))",
           "legendFormat": "{{error_code}}",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Pipeline duration p50/p95/p99 per provider",
       "description": "Download -> OCR -> ekstraksi untuk satu dokumen. Provider dipilih config (baidu_aistudio | paddleocr_local | digitalborn).",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 30
+      },
       "id": 5,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.50, sum by (le, ocr_provider) (rate(ocr_pipeline_duration_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p50 {{ocr_provider}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le, ocr_provider) (rate(ocr_pipeline_duration_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p95 {{ocr_provider}}", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.99, sum by (le, ocr_provider) (rate(ocr_pipeline_duration_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p99 {{ocr_provider}}", "refId": "C" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.50, sum by (le, ocr_provider) (rate(ocr_pipeline_duration_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p50 {{ocr_provider}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, ocr_provider) (rate(ocr_pipeline_duration_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p95 {{ocr_provider}}",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le, ocr_provider) (rate(ocr_pipeline_duration_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p99 {{ocr_provider}}",
+          "refId": "C"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Field extraction rate per field (status=extracted)",
       "description": "Kualitas per field skema (merchant/date/total/...): rasio dokumen yang field-nya 'extracted'. 'total' rendah = draft tidak lahir - kriteria pilot inti.",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
       "id": 12,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum by (field) (rate(ocr_document_fields_total{service_name=\"ocr\", status=\"extracted\"}[5m])) / clamp_min(sum by (field) (rate(ocr_document_fields_total{service_name=\"ocr\"}[5m])), 0.000001)",
           "legendFormat": "{{field}}",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "min": 0 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1,
+          "min": 0
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "OCR stage latency p50/p95 per provider",
       "description": "Khusus panggilan provider OCR (semaphore + Baidu) - bukan seluruh pipeline. Kriteria pilot: < 15 detik per nota.",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 34 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 38
+      },
       "id": 13,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.50, sum by (le, ocr_provider) (rate(ocr_provider_duration_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p50 {{ocr_provider}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le, ocr_provider) (rate(ocr_provider_duration_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p95 {{ocr_provider}}", "refId": "B" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.50, sum by (le, ocr_provider) (rate(ocr_provider_duration_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p50 {{ocr_provider}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, ocr_provider) (rate(ocr_provider_duration_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p95 {{ocr_provider}}",
+          "refId": "B"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Avg confidence per dokumen p50/p95",
       "description": "Distribusi rata-rata confidence hasil (0-1) - indikator kualitas baca tanpa membawa isi nota.",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 34 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 38
+      },
       "id": 14,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.50, sum by (le, ocr_provider) (rate(ocr_document_confidence_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p50 {{ocr_provider}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le, ocr_provider) (rate(ocr_document_confidence_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p95 {{ocr_provider}}", "refId": "B" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.50, sum by (le, ocr_provider) (rate(ocr_document_confidence_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p50 {{ocr_provider}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, ocr_provider) (rate(ocr_document_confidence_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p95 {{ocr_provider}}",
+          "refId": "B"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "min": 0 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1,
+          "min": 0
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Queue wait p50/p95 (submit -> processing)",
       "description": "Waktu tunggu di antrean SAQ. Naik = backlog: worker kurang cepat atau worker mati.",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 42 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 46
+      },
       "id": 15,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.50, sum by (le) (rate(ocr_pipeline_queue_wait_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p50", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ocr_pipeline_queue_wait_seconds_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p95", "refId": "B" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(ocr_pipeline_queue_wait_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(ocr_pipeline_queue_wait_seconds_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "B"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Ukuran dokumen p50/p95",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 42 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 46
+      },
       "id": 16,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.50, sum by (le) (rate(ocr_document_size_bytes_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p50", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ocr_document_size_bytes_bucket{service_name=\"ocr\"}[5m])))", "legendFormat": "p95", "refId": "B" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(ocr_document_size_bytes_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(ocr_document_size_bytes_bucket{service_name=\"ocr\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "B"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "row",
       "title": "Outbox → Kafka",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 50 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 54
+      },
       "id": 103
     },
     {
       "type": "timeseries",
       "title": "Outbox: published / failed",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 51 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 55
+      },
       "id": 7,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "sum by (topic) (rate(ocr_outbox_published_total{service_name=\"ocr\"}[5m]))", "legendFormat": "published {{topic}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "sum by (topic) (rate(ocr_outbox_publish_failed_total{service_name=\"ocr\"}[5m]))", "legendFormat": "failed {{topic}}", "refId": "B" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "sum by (topic) (rate(ocr_outbox_published_total{service_name=\"ocr\"}[5m]))",
+          "legendFormat": "published {{topic}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "sum by (topic) (rate(ocr_outbox_publish_failed_total{service_name=\"ocr\"}[5m]))",
+          "legendFormat": "failed {{topic}}",
+          "refId": "B"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Outbox claimed per poll (saturasi = batch size)",
       "description": "Publisher meng-claim maksimum batch per poll; menempel di 100 = backlog outbox, publisher tertinggal.",
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 51 },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 55
+      },
       "id": 17,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "ocr_outbox_claimed{service_name=\"ocr\"}",
           "legendFormat": "claimed",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "short", "min": 0 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      }
     },
     {
       "type": "stat",
       "title": "Failed / semua (5m)",
       "description": "Rasio dokumen gagal terhadap semua status terminal dalam 5 menit terakhir.",
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 51 },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 55
+      },
       "id": 8,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum(rate(ocr_documents_failed_total{service_name=\"ocr\"}[5m])) / clamp_min(sum(rate(ocr_documents_processed_total{service_name=\"ocr\"}[5m])), 0.000001)",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.1 }, { "color": "red", "value": 0.3 } ] } }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "type": "stat",
       "title": "needs_review / semua (5m)",
       "description": "Rasio needs_review - di atas 30% review manusia jadi jalur utama (kriteria pilot go/no-go).",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 59 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 63
+      },
       "id": 9,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum(rate(ocr_documents_processed_total{service_name=\"ocr\", status=\"needs_review\"}[5m])) / clamp_min(sum(rate(ocr_documents_processed_total{service_name=\"ocr\"}[5m])), 0.000001)",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.15 }, { "color": "red", "value": 0.3 } ] } }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.15
+              },
+              {
+                "color": "red",
+                "value": 0.3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "type": "row",
       "title": "Logs (Loki)",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 67 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 71
+      },
       "id": 104
     },
     {
       "type": "logs",
       "title": "Log ocr terbaru (klik trace_id untuk waterfall)",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 68 },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 72
+      },
       "id": 18,
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "{service_name=\"ocr\"}",
           "refId": "A"
         }
       ]
+    },
+    {
+      "type": "stat",
+      "title": "Halaman OCR per 24 jam (vs kuota Baidu 3000/hari)",
+      "description": "Budget kuota harian provider. Kena 429 = kuota habis - panel ini harusnya sudah merah sebelum itu.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 63
+      },
+      "id": 990,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "sum(increase(ocr_provider_pages_total{service_name=\"ocr\"}[24h]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 2250
+              },
+              {
+                "color": "red",
+                "value": 2850
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_label"
+      }
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["ocr", "detail"],
+  "tags": [
+    "ocr",
+    "detail"
+  ],
   "templating": {
     "list": []
   },
-  "time": { "from": "now-3h", "to": "now" },
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Expense Platform - OCR Detail",
   "uid": "ocr-detail",
-  "version": 2
+  "version": 3
 }

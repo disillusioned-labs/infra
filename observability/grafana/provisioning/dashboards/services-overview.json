@@ -1,255 +1,997 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [],
+  "links": [
+    {
+      "type": "link",
+      "title": "Expense Detail",
+      "icon": "external link",
+      "url": "/d/exp-detail"
+    },
+    {
+      "type": "link",
+      "title": "OCR Detail",
+      "icon": "external link",
+      "url": "/d/ocr-detail"
+    },
+    {
+      "type": "link",
+      "title": "Logs & Traces",
+      "icon": "external link",
+      "url": "/d/exp-logs"
+    }
+  ],
   "liveNow": false,
   "panels": [
     {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "y": 0,
+        "x": 0,
+        "w": 24,
+        "h": 4
+      },
+      "id": 90,
+      "options": {
+        "mode": "markdown",
+        "content": "**Platform Overview** - dinding gejala (symptoms), bukan penyebab. Mulai di sini, drill-down ke detail untuk diagnosis.\n\n- **Status per service**: platform ini *push-based* (tanpa `/metrics`, tanpa `up`). Proses dianggap hidup selama telemetrinya segar; merah = berhenti mengirim.\n- **Security**: kegagalan login real-time (counter `auth.login.failed`, terpasang 13 Sep 2026).\n- **RED** = pengalaman user; baris pgx/Redis/Kafka = penyebab (USE).\n- Drill-down: [Expense Detail](/d/exp-detail) · [OCR Detail](/d/ocr-detail) · [Logs & Traces](/d/exp-logs)\n- ⚠️ Retensi metrik Mimir saat ini **3 hari** (`compactor_blocks_retention_period`) - tren jangka panjang butuh keputusan retensi terpisah."
+      }
+    },
+    {
       "type": "row",
-      "title": "Liveness & Runtime",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "title": "Status per service (umur telemetri)",
+      "gridPos": {
+        "y": 4,
+        "x": 0,
+        "w": 24,
+        "h": 1
+      },
       "id": 100
     },
     {
       "type": "stat",
-      "title": "Service hidup (punya go_goroutine_count)",
-      "description": "Service yang tidak push metrics dalam window ini hilang dari daftar - pengganti 'up' pada push-model.",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
-      "id": 1,
+      "title": "identity",
+      "gridPos": {
+        "y": 5,
+        "x": 0,
+        "w": 4,
+        "h": 4
+      },
+      "id": 20,
+      "description": "Detik sejak sampel telemetri terakhir. Push-based: segar = proses hidup; merah > 90s (3x interval export).",
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
-          "expr": "count(count by (service_name) (go_goroutine_count))",
-          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "time() - timestamp(go_goroutine_count{service_name=\"identity\"})",
           "refId": "A"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_label",
+        "noValue": "DOWN"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "expense",
+      "gridPos": {
+        "y": 5,
+        "x": 4,
+        "w": 4,
+        "h": 4
+      },
+      "id": 21,
+      "description": "Detik sejak sampel telemetri terakhir. Push-based: segar = proses hidup; merah > 90s (3x interval export).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "time() - timestamp(go_goroutine_count{service_name=\"expense\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_label",
+        "noValue": "DOWN"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "notification",
+      "gridPos": {
+        "y": 5,
+        "x": 8,
+        "w": 4,
+        "h": 4
+      },
+      "id": 22,
+      "description": "Detik sejak sampel telemetri terakhir. Push-based: segar = proses hidup; merah > 90s (3x interval export).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "min(time() - timestamp(go_goroutine_count{service_name=~\"notification.*\"}))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_label",
+        "noValue": "DOWN"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "audit",
+      "gridPos": {
+        "y": 5,
+        "x": 12,
+        "w": 4,
+        "h": 4
+      },
+      "id": 23,
+      "description": "Detik sejak sampel telemetri terakhir. Push-based: segar = proses hidup; merah > 90s (3x interval export).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "time() - timestamp(go_goroutine_count{service_name=\"audit\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_label",
+        "noValue": "DOWN"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "ocr-gateway",
+      "gridPos": {
+        "y": 5,
+        "x": 16,
+        "w": 4,
+        "h": 4
+      },
+      "id": 24,
+      "description": "Detik sejak sampel telemetri terakhir. Push-based: segar = proses hidup; merah > 90s (3x interval export).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "time() - timestamp(go_goroutine_count{service_name=\"ocr-gateway\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_label",
+        "noValue": "DOWN"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "ocr (3 proses)",
+      "gridPos": {
+        "y": 5,
+        "x": 20,
+        "w": 4,
+        "h": 4
+      },
+      "id": 25,
+      "description": "Detik sejak sampel telemetri terakhir. Push-based: segar = proses hidup; merah > 90s (3x interval export).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "min(time() - timestamp(ocr_process_running{service_name=\"ocr\"}))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_label",
+        "noValue": "DOWN"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Umur telemetri per service",
+      "gridPos": {
+        "y": 9,
+        "x": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 26,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "max by (service_name) (time() - timestamp(go_goroutine_count{service_name=~\".+\"}))",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "description": "Naik terus = proses berhenti mengeksport (mati/hang). OCR tercakup di tile-nya sendiri."
+    },
+    {
+      "type": "timeseries",
+      "title": "Security: kegagalan login per reason",
+      "gridPos": {
+        "y": 9,
+        "x": 12,
+        "w": 12,
+        "h": 8
+      },
+      "id": 27,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "sum by (reason) (rate(auth_login_failed_total{service_name=\"identity\"}[5m]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "description": "unknown_email vs invalid_password. Butuh identity >= 13 Sep 2026 (counter baru). Lonjakan = indikasi brute-force; identitas upaya ada di audit trail (auth.login_failed), bukan di sini."
+    },
+    {
+      "type": "row",
+      "title": "Liveness & Runtime",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 101
     },
     {
       "type": "timeseries",
       "title": "Goroutines per service",
-      "gridPos": { "h": 8, "w": 9, "x": 6, "y": 1 },
+      "gridPos": {
+        "y": 18,
+        "x": 0,
+        "w": 9,
+        "h": 8
+      },
       "id": 2,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "go_goroutine_count",
           "legendFormat": "{{service_name}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": { "custom": { "fillOpacity": 10 } },
+        "defaults": {
+          "custom": {
+            "fillOpacity": 10
+          }
+        },
         "overrides": []
       }
     },
     {
       "type": "timeseries",
       "title": "Memory used (bytes) per service",
-      "gridPos": { "h": 8, "w": 9, "x": 15, "y": 1 },
+      "gridPos": {
+        "y": 18,
+        "x": 9,
+        "w": 9,
+        "h": 8
+      },
       "id": 3,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "go_memory_used_bytes",
           "legendFormat": "{{service_name}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "bytes" },
+        "defaults": {
+          "unit": "bytes"
+        },
         "overrides": []
       }
     },
     {
       "type": "row",
-      "title": "HTTP RED (http_server_request_duration_seconds)",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
-      "id": 101
+      "title": "HTTP RED per service",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 102
     },
     {
       "type": "timeseries",
       "title": "Request rate (req/s per service)",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 10 },
+      "gridPos": {
+        "y": 27,
+        "x": 0,
+        "w": 8,
+        "h": 8
+      },
       "id": 4,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count[5m]))",
           "legendFormat": "{{service_name}}",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Error rate 4xx/5xx (req/s per service)",
       "description": "Series status_code>=400. Ratio penuh dibuat per-route di dashboard detail.",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 10 },
+      "gridPos": {
+        "y": 27,
+        "x": 8,
+        "w": 8,
+        "h": 8
+      },
       "id": 5,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count{http_response_status_code=~\"4..|5..\"}[5m]))",
           "legendFormat": "{{service_name}}",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Latency p50/p95/p99 (per service)",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 10 },
+      "gridPos": {
+        "y": 27,
+        "x": 16,
+        "w": 8,
+        "h": 8
+      },
       "id": 6,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "histogram_quantile(0.50, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket[5m])))",
           "legendFormat": "p50 {{service_name}}",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket[5m])))",
           "legendFormat": "p95 {{service_name}}",
           "refId": "B"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "histogram_quantile(0.99, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket[5m])))",
           "legendFormat": "p99 {{service_name}}",
           "refId": "C"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
       "title": "Request rate per route (semua service)",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 18 },
+      "gridPos": {
+        "y": 35,
+        "x": 0,
+        "w": 24,
+        "h": 8
+      },
       "id": 7,
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
           "expr": "sum by (service_name, http_route) (rate(http_server_request_duration_seconds_count[5m]))",
           "legendFormat": "{{service_name}} {{http_route}}",
           "refId": "A"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "type": "row",
       "title": "Postgres pool (pgx)",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
-      "id": 102
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
+      "id": 103
     },
     {
       "type": "timeseries",
       "title": "Connections: total / idle / acquired / max",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "gridPos": {
+        "y": 44,
+        "x": 0,
+        "w": 12,
+        "h": 8
+      },
       "id": 8,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_total_connections", "legendFormat": "total {{service_name}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_idle_connections", "legendFormat": "idle {{service_name}}", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_acquired_connections", "legendFormat": "acquired {{service_name}}", "refId": "C" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "pgxpool_max_connections", "legendFormat": "max {{service_name}}", "refId": "D" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "pgxpool_total_connections",
+          "legendFormat": "total {{service_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "pgxpool_idle_connections",
+          "legendFormat": "idle {{service_name}}",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "pgxpool_acquired_connections",
+          "legendFormat": "acquired {{service_name}}",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "pgxpool_max_connections",
+          "legendFormat": "max {{service_name}}",
+          "refId": "D"
+        }
       ]
     },
     {
       "type": "timeseries",
       "title": "Acquire wait & empty-acquire (saturasi pool)",
       "description": "empty_acquire naik = caller menunggu koneksi kosong; tanda pool terlalu kecil.",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+      "gridPos": {
+        "y": 44,
+        "x": 12,
+        "w": 12,
+        "h": 8
+      },
       "id": 9,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_empty_acquire_wait_time_nanoseconds_total[5m])", "legendFormat": "wait-time {{service_name}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_empty_acquire_total[5m])", "legendFormat": "empty-acquire {{service_name}}", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(pgxpool_new_connections_total[5m])", "legendFormat": "new-conn {{service_name}}", "refId": "C" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(pgxpool_empty_acquire_wait_time_nanoseconds_total[5m])",
+          "legendFormat": "wait-time {{service_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(pgxpool_empty_acquire_total[5m])",
+          "legendFormat": "empty-acquire {{service_name}}",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(pgxpool_new_connections_total[5m])",
+          "legendFormat": "new-conn {{service_name}}",
+          "refId": "C"
+        }
       ]
     },
     {
       "type": "row",
       "title": "Redis pool (go-redis)",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
-      "id": 103
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "id": 104
     },
     {
       "type": "timeseries",
       "title": "Redis connections: usage / max / idle",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "gridPos": {
+        "y": 53,
+        "x": 0,
+        "w": 12,
+        "h": 8
+      },
       "id": 10,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "db_client_connections_usage", "legendFormat": "usage {{service_name}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "db_client_connections_max", "legendFormat": "max {{service_name}}", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "db_client_connections_idle_max", "legendFormat": "idle-max {{service_name}}", "refId": "C" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "db_client_connections_usage",
+          "legendFormat": "usage {{service_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "db_client_connections_max",
+          "legendFormat": "max {{service_name}}",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "db_client_connections_idle_max",
+          "legendFormat": "idle-max {{service_name}}",
+          "refId": "C"
+        }
       ]
     },
     {
       "type": "timeseries",
       "title": "Redis waits / timeouts / operation errors",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+      "gridPos": {
+        "y": 53,
+        "x": 12,
+        "w": 12,
+        "h": 8
+      },
       "id": 11,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(db_client_connections_waits[5m])", "legendFormat": "waits {{service_name}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(db_client_connections_timeouts[5m])", "legendFormat": "timeouts {{service_name}}", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(db_client_operation_errors_total[5m])", "legendFormat": "op-errors {{service_name}}", "refId": "C" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(db_client_connections_waits[5m])",
+          "legendFormat": "waits {{service_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(db_client_connections_timeouts[5m])",
+          "legendFormat": "timeouts {{service_name}}",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(db_client_operation_errors_total[5m])",
+          "legendFormat": "op-errors {{service_name}}",
+          "refId": "C"
+        }
       ]
     },
     {
       "type": "row",
       "title": "Kafka & Outbox",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 44 },
-      "id": 104
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "id": 105
     },
     {
       "type": "timeseries",
       "title": "Kafka produce/fetch records (kotel)",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 45 },
+      "gridPos": {
+        "y": 62,
+        "x": 0,
+        "w": 12,
+        "h": 8
+      },
       "id": 12,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(messaging_kafka_produce_records_count_total[5m])", "legendFormat": "produce {{service_name}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(messaging_kafka_fetch_records_count_total[5m])", "legendFormat": "fetch {{service_name}}", "refId": "B" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(messaging_kafka_produce_records_count_total[5m])",
+          "legendFormat": "produce {{service_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(messaging_kafka_fetch_records_count_total[5m])",
+          "legendFormat": "fetch {{service_name}}",
+          "refId": "B"
+        }
       ]
     },
     {
       "type": "timeseries",
       "title": "Outbox worker: published vs failed",
       "description": "Dipancarkan worker outbox. failed > 0 konsisten = Kafka/collector bermasalah.",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 45 },
+      "gridPos": {
+        "y": 62,
+        "x": 12,
+        "w": 12,
+        "h": 8
+      },
       "id": 13,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(outbox_events_published_total[5m])", "legendFormat": "published {{service_name}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(outbox_events_publish_failed_total[5m])", "legendFormat": "failed {{service_name}}", "refId": "B" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(outbox_events_published_total[5m])",
+          "legendFormat": "published {{service_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(outbox_events_publish_failed_total[5m])",
+          "legendFormat": "failed {{service_name}}",
+          "refId": "B"
+        }
       ]
     },
     {
       "type": "timeseries",
       "title": "Kafka consumer records (processed/failed/retried/dlq)",
       "description": "Dipancarkan consumer audit & notification. failed/dlq naik = pesan bermasalah.",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 53 },
+      "gridPos": {
+        "y": 70,
+        "x": 0,
+        "w": 24,
+        "h": 8
+      },
       "id": 14,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(kafka_consumer_records_processed_total[5m])", "legendFormat": "processed {{service_name}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(kafka_consumer_records_failed_total[5m])", "legendFormat": "failed {{service_name}}", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(kafka_consumer_records_retried_total[5m])", "legendFormat": "retried {{service_name}}", "refId": "C" },
-        { "datasource": { "type": "prometheus", "uid": "mimir" }, "expr": "rate(kafka_consumer_records_dlq_total[5m])", "legendFormat": "dlq {{service_name}}", "refId": "D" }
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(kafka_consumer_records_processed_total[5m])",
+          "legendFormat": "processed {{service_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(kafka_consumer_records_failed_total[5m])",
+          "legendFormat": "failed {{service_name}}",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(kafka_consumer_records_retried_total[5m])",
+          "legendFormat": "retried {{service_name}}",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "rate(kafka_consumer_records_dlq_total[5m])",
+          "legendFormat": "dlq {{service_name}}",
+          "refId": "D"
+        }
       ]
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["expense", "platform", "overview"],
-  "templating": { "list": [] },
-  "time": { "from": "now-3h", "to": "now" },
+  "tags": [
+    "platform",
+    "overview"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Expense Platform - Services Overview",
   "uid": "exp-overview",
-  "version": 1
+  "version": 2
 }
