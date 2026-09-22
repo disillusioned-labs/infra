@@ -119,7 +119,7 @@ services:
 
   podman-socket-proxy:
     container_name: observability-podman-socket-proxy
-    image: lscr.io/linuxserver/socket-proxy:3.4.3-r0-ls93
+    image: ghcr.io/linuxserver/socket-proxy:3.4.3-r0-ls93
     environment:
       # Kuma only needs read access to list and inspect containers.
       CONTAINERS: "1"

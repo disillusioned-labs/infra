@@ -31,6 +31,9 @@ done
 echo "Building the Uptime Kuma provisioner..."
 podman compose --profile ops build --pull=always kuma-provisioner
 
+echo "Pulling the socket proxy before stopping the running Kuma stack..."
+podman compose pull podman-socket-proxy
+
 echo "Removing only the previous Uptime Kuma containers..."
 # Remove dependants before their dependencies.
 for container in \
