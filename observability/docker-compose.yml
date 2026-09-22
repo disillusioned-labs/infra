@@ -86,6 +86,54 @@ services:
       retries: 5
       start_period: 30s
 
+  uptime-kuma:
+    container_name: observability-uptime-kuma
+    image: louislam/uptime-kuma:2
+    ports:
+      - "${UPTIME_KUMA_PORT:-3002}:3001"
+    volumes:
+      - uptime-kuma-data:/app/data
+      - "${PODMAN_SOCKET_PATH:-/run/podman/podman.sock}:/var/run/docker.sock:ro"
+    networks:
+      - observability
+      - data
+      - messaging
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/api/entry-page').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  kuma-provisioner:
+    container_name: observability-kuma-provisioner
+    image: python:3.13-alpine
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        pip install --no-cache-dir uptime-kuma-api2==2.8.0 &&
+        exec python /app/provision.py
+    environment:
+      KUMA_URL: http://uptime-kuma:3001
+      KUMA_USERNAME: "${KUMA_USERNAME:-admin}"
+      KUMA_PASSWORD: "${KUMA_PASSWORD:?set KUMA_PASSWORD in observability/.env}"
+    volumes:
+      - ./kuma/provision.py:/app/provision.py:ro
+    depends_on:
+      uptime-kuma:
+        condition: service_healthy
+    networks:
+      - observability
+    restart: "no"
+
 networks:
   observability:
     name: observability
@@ -94,9 +142,19 @@ networks:
     external: true
     name: podman-ipv6
 
+  data:
+    external: true
+    name: data
+
+  messaging:
+    external: true
+    name: messaging
+
 volumes:
   loki-data:
   tempo-data:
   mimir-data:
   grafana-data:
   otel-file-storage:
+  uptime-kuma-data:
+    name: kuma_uptime-kuma-data

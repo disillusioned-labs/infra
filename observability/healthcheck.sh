@@ -54,7 +54,7 @@ check_container() {
 
 echo "=== HTTP Readiness ==="
 
-check_http "Grafana" "http://127.0.0.1:3001/api/health"
+check_http "Grafana" "http://127.0.0.1:3000/api/health"
 check_http "Loki"    "http://127.0.0.1:3100/ready"
 check_http "Tempo"   "http://127.0.0.1:3200/ready"
 check_http "Mimir"   "http://127.0.0.1:9009/ready"
