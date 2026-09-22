@@ -79,10 +79,11 @@ services:
       -ip=seaweedfs
       -s3
       -s3.port=8333
+    environment:
+      AWS_ACCESS_KEY_ID: ${SEAWEEDFS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${SEAWEEDFS_SECRET_ACCESS_KEY}
     ports:
       - "${SEAWEEDFS_S3_PORT}:8333"
-#      - "${SEAWEEDFS_MASTER_PORT}:9333"
-#      - "${SEAWEEDFS_FILER_PORT}:8888"
       - "${SEAWEEDFS_ADMIN_PORT}:23646"
     volumes:
       - seaweedfs_data:/data
