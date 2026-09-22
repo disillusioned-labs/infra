@@ -36,10 +36,9 @@ echo "Removing only the previous Uptime Kuma containers..."
 for container in \
     observability-kuma-provisioner \
     observability-uptime-kuma \
+    observability-socket-proxy \
     observability-podman-socket-proxy; do
-    if podman container exists "$container"; then
-        podman rm --force "$container"
-    fi
+    podman rm --force --ignore "$container"
 done
 
 echo "Starting Uptime Kuma and its socket proxy..."
