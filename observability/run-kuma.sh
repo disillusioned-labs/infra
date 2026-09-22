@@ -29,7 +29,7 @@ for network in data messaging; do
 done
 
 echo "Building the Uptime Kuma provisioner..."
-podman compose --profile ops build --pull kuma-provisioner
+podman compose --profile ops build --pull=always kuma-provisioner
 
 echo "Removing only the previous Uptime Kuma containers..."
 for container in observability-uptime-kuma observability-podman-socket-proxy; do
