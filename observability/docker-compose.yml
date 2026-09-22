@@ -119,23 +119,14 @@ services:
 
   podman-socket-proxy:
     container_name: observability-podman-socket-proxy
-    image: ghcr.io/linuxserver/socket-proxy:3.4.3-r0-ls93
+    image: docker.io/tecnativa/docker-socket-proxy:v0.5.0
     environment:
       # Kuma only needs read access to list and inspect containers.
       CONTAINERS: "1"
       PING: "1"
       VERSION: "1"
       EVENTS: "0"
-      LIBPOD_CONTAINERS: "0"
-      LIBPOD_EVENTS: "0"
-      LIBPOD_PING: "0"
-      LIBPOD_VERSION: "0"
       POST: "0"
-      ALLOW_ARCHIVE: "0"
-      ALLOW_CHANGES: "0"
-      ALLOW_EXPORT: "0"
-      ALLOW_LOGS: "0"
-      ALLOW_TOP: "0"
       ALLOW_PAUSE: "0"
       ALLOW_RESTARTS: "0"
       ALLOW_START: "0"
@@ -148,6 +139,7 @@ services:
     read_only: true
     tmpfs:
       - /run:rw,noexec,nosuid,size=16m,mode=1777
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
     cap_drop:
       - ALL
     security_opt:
