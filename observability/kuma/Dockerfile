@@ -6,7 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir --requirement /app/requirements.txt
+RUN pip install \
+    --root-user-action=ignore \
+    --no-cache-dir \
+    --requirement /app/requirements.txt
 
 RUN addgroup -S -g 10001 kuma-provisioner \
     && adduser -S -D -H -u 10001 -G kuma-provisioner kuma-provisioner

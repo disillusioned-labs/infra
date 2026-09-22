@@ -32,7 +32,11 @@ echo "Building the Uptime Kuma provisioner..."
 podman compose --profile ops build --pull=always kuma-provisioner
 
 echo "Removing only the previous Uptime Kuma containers..."
-for container in observability-uptime-kuma observability-podman-socket-proxy; do
+# Remove dependants before their dependencies.
+for container in \
+    observability-kuma-provisioner \
+    observability-uptime-kuma \
+    observability-podman-socket-proxy; do
     if podman container exists "$container"; then
         podman rm --force "$container"
     fi
