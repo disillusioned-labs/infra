@@ -233,6 +233,7 @@ def upsert_monitor(
 
 def ensure_docker_host(api: UptimeKumaApi) -> int:
     name = "Local Podman"
+    daemon = "tcp://podman-socket-proxy:2375"
     matching = [host for host in api.get_docker_hosts() if host["name"] == name]
     if len(matching) > 1:
         raise RuntimeError(f"duplicate Kuma Docker hosts named {name!r}")
@@ -241,14 +242,14 @@ def ensure_docker_host(api: UptimeKumaApi) -> int:
         api.edit_docker_host(
             host_id,
             name=name,
-            dockerType=DockerType.SOCKET,
-            dockerDaemon="/var/run/docker.sock",
+            dockerType=DockerType.TCP,
+            dockerDaemon=daemon,
         )
         return host_id
     result = api.add_docker_host(
         name=name,
-        dockerType=DockerType.SOCKET,
-        dockerDaemon="/var/run/docker.sock",
+        dockerType=DockerType.TCP,
+        dockerDaemon=daemon,
     )
     return result["id"]
 

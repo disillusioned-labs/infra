@@ -88,17 +88,22 @@ services:
 
   uptime-kuma:
     container_name: observability-uptime-kuma
-    image: louislam/uptime-kuma:2
+    image: louislam/uptime-kuma:2.5.5
     ports:
       - "${UPTIME_KUMA_PORT:-3002}:3001"
     volumes:
       - uptime-kuma-data:/app/data
-      - "${PODMAN_SOCKET_PATH:-/run/podman/podman.sock}:/var/run/docker.sock:ro"
     networks:
       - observability
       - data
       - messaging
+      - kuma-control
+    depends_on:
+      podman-socket-proxy:
+        condition: service_started
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test:
         [
@@ -112,26 +117,64 @@ services:
       retries: 12
       start_period: 20s
 
+  podman-socket-proxy:
+    container_name: observability-podman-socket-proxy
+    image: lscr.io/linuxserver/socket-proxy:3.4.3-r0-ls93
+    environment:
+      # Kuma only needs read access to list and inspect containers.
+      CONTAINERS: "1"
+      PING: "1"
+      VERSION: "1"
+      EVENTS: "0"
+      LIBPOD_CONTAINERS: "0"
+      LIBPOD_EVENTS: "0"
+      LIBPOD_PING: "0"
+      LIBPOD_VERSION: "0"
+      POST: "0"
+      ALLOW_ARCHIVE: "0"
+      ALLOW_CHANGES: "0"
+      ALLOW_EXPORT: "0"
+      ALLOW_LOGS: "0"
+      ALLOW_TOP: "0"
+      ALLOW_PAUSE: "0"
+      ALLOW_RESTARTS: "0"
+      ALLOW_START: "0"
+      ALLOW_STOP: "0"
+      ALLOW_UNPAUSE: "0"
+    volumes:
+      - "${PODMAN_SOCKET_PATH:-/run/podman/podman.sock}:/var/run/docker.sock:ro"
+    networks:
+      - kuma-control
+    read_only: true
+    tmpfs:
+      - /run:rw,noexec,nosuid,size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
   kuma-provisioner:
     container_name: observability-kuma-provisioner
-    image: python:3.13-alpine
-    command:
-      - /bin/sh
-      - -c
-      - >-
-        pip install --no-cache-dir uptime-kuma-api2==2.8.0 &&
-        exec python /app/provision.py
+    profiles: ["ops"]
+    build:
+      context: ./kuma
     environment:
       KUMA_URL: http://uptime-kuma:3001
       KUMA_USERNAME: "${KUMA_USERNAME:-admin}"
       KUMA_PASSWORD: "${KUMA_PASSWORD:?set KUMA_PASSWORD in observability/.env}"
-    volumes:
-      - ./kuma/provision.py:/app/provision.py:ro
     depends_on:
       uptime-kuma:
         condition: service_healthy
     networks:
       - observability
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: "no"
 
 networks:
@@ -149,6 +192,10 @@ networks:
   messaging:
     external: true
     name: messaging
+
+  kuma-control:
+    name: kuma-control
+    internal: true
 
 volumes:
   loki-data:
