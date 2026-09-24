@@ -51,4 +51,4 @@ echo "Applying the repository-managed monitor configuration..."
 podman compose --profile ops run --rm kuma-provisioner
 
 echo "Uptime Kuma is ready. Current status:"
-podman compose ps uptime-kuma podman-socket-proxy
+podman compose ps

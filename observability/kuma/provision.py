@@ -51,6 +51,13 @@ ENDPOINT_MONITORS = (
         "parent_name": "Application endpoints",
     },
     {
+        "name": "Identity gRPC (9090)",
+        "type": MonitorType.PORT,
+        "hostname": "identity-grpc",
+        "port": 9090,
+        "parent_name": "Application endpoints",
+    },
+    {
         "name": "Expense API (8081)",
         "type": MonitorType.HTTP,
         "url": "http://expense-api:8081/readyz",
@@ -194,7 +201,6 @@ BACKGROUND_CONTAINERS = (
     "identity-worker",
     "expense-consumer",
     "expense-worker",
-    "ocr-api",
     "ocr-worker",
     "ocr-outbox",
     "notification-consumer-transactional",
@@ -307,6 +313,17 @@ def main() -> None:
             upsert_monitor(api, monitor, parents)
 
         docker_host_id = ensure_docker_host(api)
+        upsert_monitor(
+            api,
+            {
+                "name": "Container / ocr-api",
+                "type": MonitorType.DOCKER,
+                "docker_container": "ocr-api",
+                "docker_host": docker_host_id,
+                "parent_name": "Application endpoints",
+            },
+            parents,
+        )
         for container in BACKGROUND_CONTAINERS:
             upsert_monitor(
                 api,
