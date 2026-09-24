@@ -204,16 +204,20 @@ BACKGROUND_CONTAINERS = (
 )
 
 
-def connect() -> UptimeKumaApi:
-    """Wait for Kuma because Podman Compose health conditions vary by provider."""
+def connect() -> tuple[UptimeKumaApi, bool]:
+    """Wait until Kuma's Socket.IO API can answer setup checks."""
     last_error: Exception | None = None
     for _ in range(30):
+        api = None
         try:
-            return UptimeKumaApi(KUMA_URL, timeout=10)
+            api = UptimeKumaApi(KUMA_URL, timeout=10)
+            return api, api.need_setup()
         except Exception as error:  # The library exposes several transport errors.
+            if api is not None:
+                api.disconnect()
             last_error = error
             time.sleep(2)
-    raise RuntimeError(f"Uptime Kuma did not become ready: {last_error!r}") from last_error
+    raise RuntimeError(f"Uptime Kuma API did not become ready: {last_error!r}") from last_error
 
 
 def monitor_index(api: UptimeKumaApi) -> dict[str, dict[str, Any]]:
@@ -288,9 +292,9 @@ def main() -> None:
     if not KUMA_PASSWORD:
         raise RuntimeError("KUMA_PASSWORD is required; copy .env.example to .env")
 
-    api = connect()
+    api, needs_setup = connect()
     try:
-        if api.need_setup():
+        if needs_setup:
             api.setup(KUMA_USERNAME, KUMA_PASSWORD)
             print(f"created initial Uptime Kuma user {KUMA_USERNAME!r}")
         api.login(KUMA_USERNAME, KUMA_PASSWORD)
