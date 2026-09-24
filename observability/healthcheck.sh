@@ -48,7 +48,7 @@ check_container() {
     else
         printf "[FAIL] %-12s status=%s (restarts: %s)\n" \
             "$name" "$status" "$restart_count"
-        ((FAIL++))
+        ((fail++))
     fi
 }
 
@@ -68,6 +68,11 @@ check_container "observability-loki"
 check_container "observability-tempo"
 check_container "observability-mimir"
 check_container "observability-otel-collector"
+check_container "observability-postgres-exporter"
+check_container "observability-redis-exporter"
+check_container "observability-podman-exporter"
+check_container "observability-node-exporter"
+check_container "observability-kafka-exporter"
 
 echo
 echo "========================================"

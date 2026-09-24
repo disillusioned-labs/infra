@@ -27,7 +27,7 @@
     },
     {
       "type": "link",
-      "title": "PostgreSQL & Redis",
+      "title": "Data Stores & Kafka",
       "icon": "external link",
       "url": "/d/data-stores"
     }

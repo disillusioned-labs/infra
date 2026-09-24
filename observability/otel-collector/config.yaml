@@ -10,7 +10,7 @@ receivers:
         endpoint: 0.0.0.0:4318
 
   # ============================================================
-  # POSTGRESQL + REDIS EXPORTERS
+  # POSTGRESQL + REDIS + PODMAN + KAFKA + HOST FILESYSTEM EXPORTERS
   # ============================================================
   prometheus:
     config:
@@ -25,6 +25,34 @@ receivers:
           scrape_timeout: 5s
           static_configs:
             - targets: [redis-exporter:9121]
+        - job_name: podman-exporter
+          scrape_interval: 30s
+          scrape_timeout: 5s
+          static_configs:
+            - targets: [podman-exporter:9882]
+          metric_relabel_configs:
+            # Keep only PostgreSQL container memory to avoid exporting metrics
+            # for every container managed by this Podman host.
+            - source_labels: [__name__, name]
+              separator: ";"
+              regex: "podman_container_mem_usage_bytes;data-postgres"
+              action: keep
+        - job_name: node-exporter
+          scrape_interval: 30s
+          scrape_timeout: 5s
+          static_configs:
+            - targets: [node-exporter:9100]
+          metric_relabel_configs:
+            # Keep only free space for the host root filesystem.
+            - source_labels: [__name__, mountpoint]
+              separator: ";"
+              regex: "node_filesystem_avail_bytes;/"
+              action: keep
+        - job_name: kafka-exporter
+          scrape_interval: 30s
+          scrape_timeout: 10s
+          static_configs:
+            - targets: [kafka-exporter:9308]
 
   # ============================================================
   # PODMAN

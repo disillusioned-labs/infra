@@ -23,6 +23,8 @@ services:
     networks:
       - observability
       - metrics
+      - host-metrics
+      - kafka-metrics
     restart: unless-stopped
 
   postgres-exporter:
@@ -52,6 +54,70 @@ services:
       REDIS_EXPORTER_DISABLE_SCRAPE_ENDPOINT: "true"
     networks:
       - metrics
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  podman-exporter:
+    container_name: observability-podman-exporter
+    image: ${PODMAN_EXPORTER_IMAGE:-quay.io/navidys/prometheus-podman-exporter:v1.21.2}
+    environment:
+      CONTAINER_HOST: unix:///run/podman/podman.sock
+    command:
+      - --collector.enhance-metrics
+    volumes:
+      # The read-only bind does not make the Podman API read-only: a compromised
+      # exporter could control host containers. Keep this service trusted and isolated.
+      - "${PODMAN_SOCKET_PATH:-/run/podman/podman.sock}:/run/podman/podman.sock:ro"
+    networks:
+      - host-metrics
+    user: "0:0"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - label=type:container_runtime_t
+    restart: unless-stopped
+
+  node-exporter:
+    container_name: observability-node-exporter
+    image: quay.io/prometheus/node-exporter:v1.12.1
+    command:
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.disable-defaults
+      - --collector.filesystem
+    volumes:
+      # Read-only host filesystem access, used only for filesystem capacity metrics.
+      - "/:/host:ro,rslave"
+    networks:
+      - host-metrics
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  kafka-exporter:
+    container_name: observability-kafka-exporter
+    image: docker.io/danielqsj/kafka-exporter:v1.10.0
+    command:
+      - --kafka.server=messaging-kafka:9092
+      # kafka_exporter v1.10.0's Sarama dependency supports up to 4.1.1.
+      - --kafka.version=4.1.1
+      - --kafka.labels=messaging
+      - --web.listen-address=:9308
+    networks:
+      - messaging
+      - kafka-metrics
     read_only: true
     cap_drop:
       - ALL
@@ -226,6 +292,14 @@ networks:
 
   kuma-control:
     name: kuma-control
+    internal: true
+
+  host-metrics:
+    name: observability-host-metrics
+    internal: true
+
+  kafka-metrics:
+    name: observability-kafka-metrics
     internal: true
 
 volumes:
