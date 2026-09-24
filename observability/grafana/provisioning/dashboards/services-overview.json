@@ -350,14 +350,14 @@
         "h": 4
       },
       "id": 25,
-      "description": "Detik sejak sampel telemetri terakhir. Push-based: segar = proses hidup; merah > 90s (3x interval export).",
+      "description": "Umur telemetri OCR tertua (3x interval export merah >90s). Nilai 999s berarti satu atau lebih role (api/worker/outbox) tidak mengirim metrik; detail role ada di OCR Detail.",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "min(time() - timestamp(ocr_process_running{service_name=\"ocr\"}))",
+          "expr": "max(max by (ocr_process) (time() - timestamp(ocr_process_running{service_name=\"ocr\"})) or max by (ocr_process) (999 * absent_over_time(ocr_process_running{service_name=\"ocr\", ocr_process=\"api\"}[90s])) or max by (ocr_process) (999 * absent_over_time(ocr_process_running{service_name=\"ocr\", ocr_process=\"worker\"}[90s])) or max by (ocr_process) (999 * absent_over_time(ocr_process_running{service_name=\"ocr\", ocr_process=\"outbox\"}[90s])))",
           "refId": "A"
         }
       ],

@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+import traceback
 from typing import Any
 
 from uptime_kuma_api import DockerType, MonitorType, UptimeKumaApi
@@ -73,6 +74,13 @@ ENDPOINT_MONITORS = (
         "type": MonitorType.PORT,
         "hostname": "ocr-gateway-grpc",
         "port": 9093,
+        "parent_name": "Application endpoints",
+    },
+    {
+        "name": "OCR Engine gRPC (9094)",
+        "type": MonitorType.PORT,
+        "hostname": "ocr-grpc",
+        "port": 9094,
         "parent_name": "Application endpoints",
     },
     {
@@ -186,6 +194,9 @@ BACKGROUND_CONTAINERS = (
     "identity-worker",
     "expense-consumer",
     "expense-worker",
+    "ocr-api",
+    "ocr-worker",
+    "ocr-outbox",
     "notification-consumer-transactional",
     "notification-consumer-social",
     "notification-consumer-marketing",
@@ -202,7 +213,7 @@ def connect() -> UptimeKumaApi:
         except Exception as error:  # The library exposes several transport errors.
             last_error = error
             time.sleep(2)
-    raise RuntimeError(f"Uptime Kuma did not become ready: {last_error}")
+    raise RuntimeError(f"Uptime Kuma did not become ready: {last_error!r}") from last_error
 
 
 def monitor_index(api: UptimeKumaApi) -> dict[str, dict[str, Any]]:
@@ -230,15 +241,21 @@ def upsert_monitor(
     if parent_name:
         desired["parent"] = parents[parent_name]
 
-    existing = monitor_index(api).get(desired["name"])
-    if existing:
-        api.edit_monitor(existing["id"], **desired)
-        action = "updated"
-        monitor_id = existing["id"]
-    else:
-        result = api.add_monitor(**desired)
-        action = "created"
-        monitor_id = result["monitorID"]
+    try:
+        existing = monitor_index(api).get(desired["name"])
+        if existing:
+            api.edit_monitor(existing["id"], **desired)
+            action = "updated"
+            monitor_id = existing["id"]
+        else:
+            result = api.add_monitor(**desired)
+            action = "created"
+            monitor_id = result["monitorID"]
+    except Exception as error:
+        raise RuntimeError(
+            f"failed to upsert Uptime Kuma monitor {desired['name']!r}: "
+            f"{type(error).__name__}({error!r})"
+        ) from error
 
     print(f"{action:7} #{monitor_id:<3} {desired['name']}")
     return monitor_id
@@ -306,5 +323,9 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as error:
-        print(f"provisioning failed: {error}", file=sys.stderr)
+        print(
+            f"provisioning failed ({type(error).__name__}): {error!r}",
+            file=sys.stderr,
+        )
+        traceback.print_exc()
         raise SystemExit(1) from error

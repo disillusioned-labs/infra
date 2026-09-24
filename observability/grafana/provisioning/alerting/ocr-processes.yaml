@@ -1,0 +1,187 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: ocr-process-liveness
+    folder: Expense Platform
+    interval: 1m
+    rules:
+      - uid: ocr_api_telemetry_missing
+        title: OCR API telemetry missing
+        condition: B
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 180
+              to: 0
+            datasourceUid: mimir
+            model:
+              datasource:
+                type: prometheus
+                uid: mimir
+              editorMode: code
+              expr: absent_over_time(ocr_process_running{service_name="ocr", ocr_process="api"}[90s])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+              range: false
+          - refId: B
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: OCR API has stopped exporting liveness telemetry
+          description: No OCR API liveness samples have reached Mimir for over 90 seconds. Check the ocr-api container and the OTLP path.
+        labels:
+          service: ocr
+          ocr_process: api
+          severity: warning
+
+      - uid: ocr_worker_telemetry_missing
+        title: OCR worker telemetry missing
+        condition: B
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 180
+              to: 0
+            datasourceUid: mimir
+            model:
+              datasource:
+                type: prometheus
+                uid: mimir
+              editorMode: code
+              expr: absent_over_time(ocr_process_running{service_name="ocr", ocr_process="worker"}[90s])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+              range: false
+          - refId: B
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: OCR worker has stopped exporting liveness telemetry
+          description: No OCR worker liveness samples have reached Mimir for over 90 seconds. Check the ocr-worker container and the OTLP path.
+        labels:
+          service: ocr
+          ocr_process: worker
+          severity: warning
+
+      - uid: ocr_outbox_telemetry_missing
+        title: OCR outbox telemetry missing
+        condition: B
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 180
+              to: 0
+            datasourceUid: mimir
+            model:
+              datasource:
+                type: prometheus
+                uid: mimir
+              editorMode: code
+              expr: absent_over_time(ocr_process_running{service_name="ocr", ocr_process="outbox"}[90s])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+              range: false
+          - refId: B
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: OCR outbox has stopped exporting liveness telemetry
+          description: No OCR outbox liveness samples have reached Mimir for over 90 seconds. Check the ocr-outbox container and the OTLP path.
+        labels:
+          service: ocr
+          ocr_process: outbox
+          severity: warning

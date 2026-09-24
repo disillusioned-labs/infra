@@ -51,7 +51,7 @@
     {
       "type": "timeseries",
       "title": "Liveness per proses (api/worker/outbox)",
-      "description": "Push telemetry tidak punya `up`: seri ini konstan 1 selama proses hidup. Celah = proses mati; alert `absent()` per ocr_process.",
+      "description": "Push telemetry tidak punya `up`: 1 = sampel role berumur <90s; 0 = stale/hilang. Hilangnya telemetri juga bisa berarti jalur OTLP bermasalah; alert per role memakai absent_over_time 90s.",
       "gridPos": {
         "h": 7,
         "w": 12,
@@ -65,7 +65,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "sum by (ocr_process) (ocr_process_running{service_name=\"ocr\"})",
+          "expr": "max by (ocr_process) ((time() - timestamp(ocr_process_running{service_name=\"ocr\"})) < bool 90) or max by (ocr_process) (0 * absent_over_time(ocr_process_running{service_name=\"ocr\", ocr_process=\"api\"}[90s])) or max by (ocr_process) (0 * absent_over_time(ocr_process_running{service_name=\"ocr\", ocr_process=\"worker\"}[90s])) or max by (ocr_process) (0 * absent_over_time(ocr_process_running{service_name=\"ocr\", ocr_process=\"outbox\"}[90s]))",
           "legendFormat": "{{ocr_process}}",
           "refId": "A"
         }
@@ -73,7 +73,21 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "min": 0
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       }
