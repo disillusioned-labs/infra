@@ -2,12 +2,12 @@
 
 set -euo pipefail
 
-CONTAINER_NAME="messaging-kafka"
+container_name="messaging-kafka"
 
-TOPIC_NAME="${1:-}"
-PARTITIONS="${2:-3}"
+topic_name="${1:-}"
+partitions="${2:-3}"
 
-if [[ -z "$TOPIC_NAME" ]]; then
+if [[ -z "$topic_name" ]]; then
   echo "Usage: $0 <topic-name> [partitions]"
   echo
   echo "Example:"
@@ -17,19 +17,19 @@ if [[ -z "$TOPIC_NAME" ]]; then
 fi
 
 echo "Creating Kafka topic..."
-echo "  topic      : $TOPIC_NAME"
-echo "  partitions : $PARTITIONS"
+echo "  topic      : $topic_name"
+echo "  partitions : $partitions"
 
-podman exec "$CONTAINER_NAME" \
+podman exec "$container_name" \
   /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server localhost:9092 \
   --create \
   --if-not-exists \
-  --topic "$TOPIC_NAME" \
-  --partitions "$PARTITIONS" \
+  --topic "$topic_name" \
+  --partitions "$partitions" \
   --replication-factor 1
 
 echo
 echo "Done."
-echo "  topic      : $TOPIC_NAME"
-echo "  partitions : $PARTITIONS"
+echo "  topic      : $topic_name"
+echo "  partitions : $partitions"

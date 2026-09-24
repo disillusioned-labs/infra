@@ -1,2 +1,5 @@
 observability/.env
+data/.env
+data/secrets/*
+!data/secrets/.gitkeep
 **/__pycache__/

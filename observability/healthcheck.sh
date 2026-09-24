@@ -8,8 +8,8 @@ echo " $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo "========================================"
 echo
 
-OK=0
-FAIL=0
+ok=0
+fail=0
 
 check_http() {
     local name="$1"
@@ -17,10 +17,10 @@ check_http() {
 
     if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
         printf "[ OK ] %-12s %s\n" "$name" "$url"
-        ((OK++))
+        ((ok++))
     else
         printf "[FAIL] %-12s %s\n" "$name" "$url"
-        ((FAIL++))
+        ((fail++))
     fi
 }
 
@@ -29,7 +29,7 @@ check_container() {
 
     if ! podman container exists "$name" 2>/dev/null; then
         printf "[FAIL] %-12s container not found\n" "$name"
-        ((FAIL++))
+        ((fail++))
         return
     fi
 
@@ -71,10 +71,10 @@ check_container "observability-otel-collector"
 
 echo
 echo "========================================"
-printf " Result: %s OK / %s FAIL\n" "$OK" "$FAIL"
+printf " Result: %s OK / %s FAIL\n" "$ok" "$fail"
 echo "========================================"
 
-if (( FAIL > 0 )); then
+if (( fail > 0 )); then
     exit 1
 fi
 

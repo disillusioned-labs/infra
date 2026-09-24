@@ -21,15 +21,20 @@ services:
       retries: 5
     networks:
       - data
+      - metrics
     restart: unless-stopped
 
   redis:
     container_name: data-redis
     image: redis:8-alpine
+    command: ["sh", "/usr/local/bin/redis-monitor-entrypoint.sh"]
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
       - redisdata:/data
+      - ./scripts/redis-monitor-entrypoint.sh:/usr/local/bin/redis-monitor-entrypoint.sh:ro
+    secrets:
+      - redis_exporter_password
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -37,6 +42,7 @@ services:
       retries: 5
     networks:
       - data
+      - metrics
     restart: unless-stopped
 
   pgadmin:
@@ -104,6 +110,13 @@ services:
 networks:
   data:
     name: data
+  metrics:
+    name: observability-metrics
+    internal: true
+
+secrets:
+  redis_exporter_password:
+    file: ./secrets/redis-exporter-password
 
 volumes:
   pgdata:

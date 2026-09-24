@@ -2,14 +2,14 @@
 
 set -euo pipefail
 
-CONTAINER_NAME="data-postgres"
-POSTGRES_USER="postgres"
-POSTGRES_DB="postgres"
+container_name="data-postgres"
+postgres_user="postgres"
+postgres_db="postgres"
 
-SERVICE_NAME="${1:-}"
-DB_PASSWORD="${2:-}"
+service_name="${1:-}"
+db_password="${2:-}"
 
-if [[ -z "$SERVICE_NAME" || -z "$DB_PASSWORD" ]]; then
+if [[ -z "$service_name" || -z "$db_password" ]]; then
   echo "Usage: $0 <service-name> <database-password>"
   echo
   echo "Example:"
@@ -17,21 +17,21 @@ if [[ -z "$SERVICE_NAME" || -z "$DB_PASSWORD" ]]; then
   exit 1
 fi
 
-DB_NAME="$SERVICE_NAME"
-DB_USER="${SERVICE_NAME}_app"
+db_name="$service_name"
+db_user="${service_name}_app"
 
 echo "Provisioning PostgreSQL..."
-echo "  database : $DB_NAME"
-echo "  user     : $DB_USER"
+echo "  database : $db_name"
+echo "  user     : $db_user"
 
-podman exec -i "$CONTAINER_NAME" \
+podman exec -i "$container_name" \
   psql \
-    -U "$POSTGRES_USER" \
-    -d "$POSTGRES_DB" \
+    -U "$postgres_user" \
+    -d "$postgres_db" \
     -v ON_ERROR_STOP=1 \
-    -v db_user="$DB_USER" \
-    -v db_name="$DB_NAME" \
-    -v db_password="$DB_PASSWORD" <<'SQL'
+    -v db_user="$db_user" \
+    -v db_name="$db_name" \
+    -v db_password="$db_password" <<'SQL'
 
 SELECT format(
   'CREATE ROLE %I LOGIN PASSWORD %L',
@@ -61,7 +61,7 @@ SQL
 
 echo
 echo "Database provisioning complete."
-echo "  database : $DB_NAME"
-echo "  user     : $DB_USER"
-echo "  host     : $CONTAINER_NAME"
+echo "  database : $db_name"
+echo "  user     : $db_user"
+echo "  host     : $container_name"
 echo "  port     : 5432"

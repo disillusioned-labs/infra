@@ -22,6 +22,47 @@ services:
       - "1777:1777"
     networks:
       - observability
+      - metrics
+    restart: unless-stopped
+
+  postgres-exporter:
+    container_name: observability-postgres-exporter
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    environment:
+      DATA_SOURCE_URI: data-postgres:5432/postgres?sslmode=disable
+      DATA_SOURCE_USER: postgres_exporter
+      DATA_SOURCE_PASS_FILE: /run/secrets/postgres_exporter_password
+      PG_EXPORTER_COLLECTION_TIMEOUT: 5s
+    secrets:
+      - postgres_exporter_password
+    networks:
+      - metrics
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  redis-exporter:
+    container_name: observability-redis-exporter
+    image: quay.io/oliver006/redis_exporter:v1.92.0
+    environment:
+      REDIS_ADDR: redis://data-redis:6379
+      REDIS_USER: redis_exporter
+      REDIS_PASSWORD_FILE: /run/secrets/redis_exporter_password
+      REDIS_EXPORTER_LUA_SCRIPT_READ_ONLY: "true"
+      REDIS_EXPORTER_INCL_CONFIG_METRICS: "false"
+      REDIS_EXPORTER_DISABLE_SCRAPE_ENDPOINT: "true"
+    secrets:
+      - redis_exporter_password
+    networks:
+      - metrics
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   loki:
@@ -181,6 +222,10 @@ networks:
     external: true
     name: data
 
+  metrics:
+    external: true
+    name: observability-metrics
+
   messaging:
     external: true
     name: messaging
@@ -197,3 +242,9 @@ volumes:
   otel-file-storage:
   uptime-kuma-data:
     name: kuma_uptime-kuma-data
+
+secrets:
+  postgres_exporter_password:
+    file: ../data/secrets/postgres-exporter-password
+  redis_exporter_password:
+    file: ../data/secrets/redis-exporter-password

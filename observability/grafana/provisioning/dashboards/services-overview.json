@@ -24,6 +24,12 @@
       "title": "Logs & Traces",
       "icon": "external link",
       "url": "/d/exp-logs"
+    },
+    {
+      "type": "link",
+      "title": "PostgreSQL & Redis",
+      "icon": "external link",
+      "url": "/d/data-stores"
     }
   ],
   "liveNow": false,

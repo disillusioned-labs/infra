@@ -1,0 +1,193 @@
+{
+  "annotations": { "list": [] },
+  "description": "Production-oriented PostgreSQL and Redis health and saturation overview.",
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "type": "link",
+      "title": "Platform Overview",
+      "icon": "external link",
+      "url": "/d/exp-overview"
+    }
+  ],
+  "panels": [
+    {
+      "type": "text",
+      "title": "",
+      "id": 1,
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 3 },
+      "options": {
+        "mode": "markdown",
+        "content": "**Data Stores — PostgreSQL & Redis**\n\nThe status tiles separate exporter scrape health (`up`) from whether the exporter can reach the database (`pg_up` / `redis_up`). The panels below focus on saturation and behavior; use logs/traces for request-level diagnosis."
+      }
+    },
+    {
+      "type": "stat",
+      "title": "PostgreSQL exporter",
+      "description": "Collector can scrape postgres_exporter.",
+      "id": 2,
+      "gridPos": { "x": 0, "y": 3, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [{ "refId": "A", "expr": "up{job=\"postgres-exporter\"}", "instant": true }],
+      "fieldConfig": { "defaults": { "decimals": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }, "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" }
+    },
+    {
+      "type": "stat",
+      "title": "PostgreSQL target",
+      "description": "Exporter can connect to PostgreSQL and collect stats.",
+      "id": 3,
+      "gridPos": { "x": 6, "y": 3, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [{ "refId": "A", "expr": "pg_up{job=\"postgres-exporter\"}", "instant": true }],
+      "fieldConfig": { "defaults": { "decimals": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }, "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" }
+    },
+    {
+      "type": "stat",
+      "title": "Redis exporter",
+      "description": "Collector can scrape redis_exporter.",
+      "id": 4,
+      "gridPos": { "x": 12, "y": 3, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [{ "refId": "A", "expr": "up{job=\"redis-exporter\"}", "instant": true }],
+      "fieldConfig": { "defaults": { "decimals": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }, "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" }
+    },
+    {
+      "type": "stat",
+      "title": "Redis target",
+      "description": "Exporter can authenticate to Redis and read its statistics.",
+      "id": 5,
+      "gridPos": { "x": 18, "y": 3, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [{ "refId": "A", "expr": "redis_up{job=\"redis-exporter\"}", "instant": true }],
+      "fieldConfig": { "defaults": { "decimals": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }, "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" }
+    },
+    {
+      "type": "row",
+      "title": "PostgreSQL",
+      "id": 10,
+      "gridPos": { "x": 0, "y": 7, "w": 24, "h": 1 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Connection usage",
+      "description": "Current connections as a percentage of max_connections.",
+      "id": 11,
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [{ "refId": "A", "expr": "100 * sum(pg_stat_activity_count{job=\"postgres-exporter\"}) / max(pg_settings_max_connections{job=\"postgres-exporter\"})", "legendFormat": "connections used" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 12, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Transaction rate",
+      "description": "Commit and rollback rate across databases.",
+      "id": 12,
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [
+        { "refId": "A", "expr": "sum by (datname) (rate(pg_stat_database_xact_commit{job=\"postgres-exporter\"}[5m]))", "legendFormat": "{{datname}} commits/s" },
+        { "refId": "B", "expr": "sum by (datname) (rate(pg_stat_database_xact_rollback{job=\"postgres-exporter\"}[5m]))", "legendFormat": "{{datname}} rollbacks/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "min": 0, "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 8, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Buffer cache hit rate",
+      "description": "Low cache hit rate may indicate memory or query pressure; interpret with workload context.",
+      "id": 13,
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [{ "refId": "A", "expr": "100 * sum(rate(pg_stat_database_blks_hit{job=\"postgres-exporter\"}[5m])) / clamp_min(sum(rate(pg_stat_database_blks_hit{job=\"postgres-exporter\"}[5m]) + rate(pg_stat_database_blks_read{job=\"postgres-exporter\"}[5m])), 1e-9)", "legendFormat": "cache hit rate" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 12, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Deadlocks",
+      "description": "Rate of deadlocks reported by PostgreSQL databases.",
+      "id": 14,
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [{ "refId": "A", "expr": "sum by (datname) (rate(pg_stat_database_deadlocks{job=\"postgres-exporter\"}[5m]))", "legendFormat": "{{datname}} deadlocks/s" }],
+      "fieldConfig": { "defaults": { "unit": "ops", "min": 0, "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 8, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "row",
+      "title": "Redis",
+      "id": 20,
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 1 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory",
+      "description": "Used and configured max memory. A max of zero means Redis has no maxmemory limit configured.",
+      "id": 21,
+      "gridPos": { "x": 0, "y": 25, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [
+        { "refId": "A", "expr": "redis_memory_used_bytes{job=\"redis-exporter\"}", "legendFormat": "used" },
+        { "refId": "B", "expr": "redis_memory_max_bytes{job=\"redis-exporter\"}", "legendFormat": "maxmemory" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "min": 0, "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Client connections",
+      "description": "Connected versus blocked Redis clients.",
+      "id": 22,
+      "gridPos": { "x": 12, "y": 25, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [
+        { "refId": "A", "expr": "redis_connected_clients{job=\"redis-exporter\"}", "legendFormat": "connected" },
+        { "refId": "B", "expr": "redis_blocked_clients{job=\"redis-exporter\"}", "legendFormat": "blocked" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 8, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Keyspace hit rate",
+      "description": "Percentage of key lookups served from Redis memory.",
+      "id": 23,
+      "gridPos": { "x": 0, "y": 33, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [{ "refId": "A", "expr": "100 * sum(rate(redis_keyspace_hits_total{job=\"redis-exporter\"}[5m])) / clamp_min(sum(rate(redis_keyspace_hits_total{job=\"redis-exporter\"}[5m]) + rate(redis_keyspace_misses_total{job=\"redis-exporter\"}[5m])), 1e-9)", "legendFormat": "hit rate" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 12, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Commands and evictions",
+      "description": "Evictions indicate keys removed to satisfy maxmemory policy.",
+      "id": 24,
+      "gridPos": { "x": 12, "y": 33, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "targets": [
+        { "refId": "A", "expr": "rate(redis_commands_processed_total{job=\"redis-exporter\"}[5m])", "legendFormat": "commands/s" },
+        { "refId": "B", "expr": "rate(redis_evicted_keys_total{job=\"redis-exporter\"}[5m])", "legendFormat": "evictions/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "min": 0, "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 8, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["infrastructure", "postgresql", "redis"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Data Stores - PostgreSQL & Redis",
+  "uid": "data-stores",
+  "version": 1
+}
