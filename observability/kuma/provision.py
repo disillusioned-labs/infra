@@ -63,6 +63,19 @@ ENDPOINT_MONITORS = (
         "parent_name": "Application endpoints",
     },
     {
+        "name": "OCR Gateway (8083)",
+        "type": MonitorType.HTTP,
+        "url": "http://ocr-gateway-grpc:8083/readyz",
+        "parent_name": "Application endpoints",
+    },
+    {
+        "name": "OCR Gateway gRPC (9093)",
+        "type": MonitorType.PORT,
+        "hostname": "ocr-gateway-grpc",
+        "port": 9093,
+        "parent_name": "Application endpoints",
+    },
+    {
         "name": "PostgreSQL (5432)",
         "type": MonitorType.PORT,
         "hostname": "data-postgres",
